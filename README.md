@@ -325,14 +325,27 @@ pnpm install
 
 ### 데이터베이스 연결
 
-프로젝트 루트에 `.env` 파일을 생성해야 합니다. `docker-compose.yml`을 사용하여 로컬 데이터베이스를 실행한 경우, 아래 내용을 파일에 추가하세요. 이 값들은 `docker-compose.yml`의 기본값과 일치합니다.
+프로젝트 루트의 `.env.example` 파일을 복사하여 `.env` 파일을 생성하세요. 이 파일은 `docker-compose.yml`에서 사용하는 데이터베이스 환경변수를 설정하는 데 사용됩니다.
 
-```env
-# PostgreSQL 데이터베이스 URL (docker-compose.yml 기본값 기준)
-DATABASE_URL="postgresql://user:password@localhost:5432/db"
+```bash
+cp .env.example .env
 ```
 
-만약 `docker-compose.yml`에서 설정을 변경했거나 다른 데이터베이스를 사용한다면, 해당 정보에 맞게 `DATABASE_URL`을 수정해야 합니다.
+`.env.example` 파일의 내용은 다음과 같습니다. 이 값들은 `docker-compose.yml`의 기본값과 일치합니다. 만약 설정을 변경했거나 다른 데이터베이스를 사용한다면, 생성된 `.env` 파일의 값을 수정해주세요.
+
+```env
+# .env
+
+# PostgreSQL Database connection for Docker and Prisma
+# These values are used by docker-compose.yml and the DATABASE_URL below.
+POSTGRES_USER=myuser
+POSTGRES_PASSWORD=mypassword
+POSTGRES_DB=mydb
+
+# Full database connection string for Prisma.
+# It reads the variables from above to connect to the PostgreSQL container.
+DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}"
+```
 
 ### 앱별 환경 변수
 
