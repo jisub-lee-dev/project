@@ -228,7 +228,7 @@ function MyComponent() {
 `@repo/ui` 패키지에 새로운 `shadcn/ui` 컴포넌트를 추가하려면, **프로젝트 루트 디렉토리**에서 다음 명령어를 실행하세요.
 
 ```bash
-pnpm dlx shadcn-ui@latest add [component-name] --cwd packages/ui
+pnpm dlx shadcn@latest add [component-name] --cwd packages/ui
 ```
 이 명령어는 `packages/ui` 디렉토리에 컴포넌트를 직접 추가합니다.
 
