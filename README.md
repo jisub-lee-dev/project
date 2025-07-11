@@ -348,10 +348,10 @@ cp apps/web/.env.local.example apps/web/.env.local
 `.env.local` 파일 생성 후, 반드시 `NEXTAUTH_SECRET` 값을 새로 생성하여 채워넣어야 합니다. 아래 명령어를 사용하여 새로운 시크릿을 생성할 수 있습니다.
 
 ```bash
-openssl rand -base64 32
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 ```
 
-## �� 배포
+## 🌐 배포
 
 ### Vercel 배포
 

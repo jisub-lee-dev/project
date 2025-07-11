@@ -40,7 +40,7 @@ alwaysApply: true
   2.  `docker-compose up -d` 명령으로 로컬 데이터베이스를 실행합니다.
   3.  `cp .env.example .env` 명령으로 루트 환경 변수 파일을 생성합니다.
   4.  `cp apps/web/.env.local.example apps/web/.env.local` 명령으로 `web` 앱의 환경 변수 파일을 생성합니다.
-  5.  `openssl rand -base64 32` 명령으로 `NEXTAUTH_SECRET` 값을 생성한 후, `apps/web/.env.local` 파일에 붙여넣습니다.
+  5.  `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` 명령으로 `NEXTAUTH_SECRET` 값을 생성한 후, `apps/web/.env.local` 파일에 붙여넣습니다.
   6.  `pnpm --filter=@repo/db db:push` 명령으로 데이터베이스 스키마를 동기화합니다.
   7.  `pnpm install`로 모든 의존성을 설치합니다.
 - **Prisma 명령어**: `pnpm --filter=@repo/db [command]` 형식을 사용합니다. (예: `pnpm --filter=@repo/db db:generate`)
