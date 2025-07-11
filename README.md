@@ -21,6 +21,7 @@ project/
 │       ├── .eslintrc.json   # ESLint 설정
 │       ├── next.config.mjs   # Next.js 설정
 │       ├── postcss.config.mjs
+│       ├── .env.local.example # NextAuth.js 환경 변수 예시
 │       └── next-env.d.ts
 ├── packages/
 │   ├── tsconfig/           # TypeScript 설정 공유 패키지
@@ -54,6 +55,7 @@ project/
 ├── pnpm-workspace.yaml     # pnpm 워크스페이스 설정
 ├── turbo.json              # Turborepo 설정 (tasks 사용)
 ├── .gitignore              # Git 무시 파일
+├── .env.example            # 루트 환경 변수 예시
 └── README.md               # 이 파일
 ```
 
@@ -323,35 +325,33 @@ pnpm install
 
 ## 🌐 환경 변수 설정
 
-### 데이터베이스 연결
+이 프로젝트는 루트와 각 앱 레벨에서 환경 변수를 사용합니다. 개발을 시작하기 전에 `.env.example` 파일을 복사하여 환경 변수 설정 파일을 생성해야 합니다.
 
-프로젝트 루트의 `.env.example` 파일을 복사하여 `.env` 파일을 생성하세요. 이 파일은 `docker-compose.yml`에서 사용하는 데이터베이스 환경변수를 설정하는 데 사용됩니다.
+### 루트 환경 변수 (`.env`)
+
+프로젝트 루트에서 다음 명령어를 실행하여 데이터베이스 연결을 위한 `.env` 파일을 생성하세요.
 
 ```bash
 cp .env.example .env
 ```
 
-`.env.example` 파일의 내용은 다음과 같습니다. 이 값들은 `docker-compose.yml`의 기본값과 일치합니다. 만약 설정을 변경했거나 다른 데이터베이스를 사용한다면, 생성된 `.env` 파일의 값을 수정해주세요.
+`.env.example` 파일은 로컬 PostgreSQL 데이터베이스 연결을 위한 기본 설정을 포함하고 있으며, `docker-compose.yml`의 기본값과 일치합니다. 만약 `docker-compose.yml`을 수정했거나 다른 데이터베이스를 사용한다면, 생성된 `.env` 파일의 값을 직접 수정해야 합니다.
 
-```env
-# .env
+### 앱별 환경 변수 (`apps/web/.env.local`)
 
-# PostgreSQL Database connection for Docker and Prisma
-# These values are used by docker-compose.yml and the DATABASE_URL below.
-POSTGRES_USER=myuser
-POSTGRES_PASSWORD=mypassword
-POSTGRES_DB=mydb
+`web` 애플리케이션은 `NextAuth.js` 인증을 위한 별도의 환경 변수가 필요합니다. `apps/web` 디렉토리에서 다음 명령어를 실행하여 `.env.local` 파일을 생성하세요.
 
-# Full database connection string for Prisma.
-# It reads the variables from above to connect to the PostgreSQL container.
-DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}"
+```bash
+cp apps/web/.env.local.example apps/web/.env.local
 ```
 
-### 앱별 환경 변수
+`.env.local` 파일 생성 후, 반드시 `NEXTAUTH_SECRET` 값을 새로 생성하여 채워넣어야 합니다. 아래 명령어를 사용하여 새로운 시크릿을 생성할 수 있습니다.
 
-각 앱(`apps/web` 등)의 루트에 `.env.local` 파일을 생성하여 해당 앱에서만 사용할 환경 변수를 설정할 수 있습니다.
+```bash
+openssl rand -base64 32
+```
 
-## 🚀 배포
+## �� 배포
 
 ### Vercel 배포
 
