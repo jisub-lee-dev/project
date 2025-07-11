@@ -95,6 +95,7 @@ project/
 - **Node.js** v24.x
 - **pnpm** v10.x 이상
 - **Git**
+- **Docker** (로컬 데이터베이스 사용 시)
 
 ### 설치 및 실행
 
@@ -107,6 +108,24 @@ pnpm dev
 ```
 
 개발 서버가 실행되면 `http://localhost:3000`에서 웹 애플리케이션을 확인할 수 있습니다.
+
+### 로컬 데이터베이스 실행 (Docker)
+
+이 프로젝트는 개발용 PostgreSQL 데이터베이스를 Docker로 실행할 수 있도록 `docker-compose.yml` 파일을 제공합니다.
+
+1.  컴퓨터에 [Docker](https://www.docker.com/products/docker-desktop/)가 설치 및 실행 중인지 확인하세요.
+2.  프로젝트 루트에서 다음 명령어를 실행하여 데이터베이스를 시작합니다.
+    ```bash
+    docker-compose up -d
+    ```
+3.  데이터베이스 스키마를 적용하려면 다음 명령어를 실행하세요.
+    ```bash
+    pnpm --filter=@repo/db db:push
+    ```
+4.  데이터베이스를 중지하려면 다음 명령어를 사용합니다.
+    ```bash
+    docker-compose down
+    ```
 
 ## 📦 사용 가능한 스크립트
 
@@ -306,12 +325,14 @@ pnpm install
 
 ### 데이터베이스 연결
 
-프로젝트 루트에 `.env` 파일을 생성하고 다음을 추가하세요. 이 파일은 모든 패키지에서 참조할 수 있습니다.
+프로젝트 루트에 `.env` 파일을 생성해야 합니다. `docker-compose.yml`을 사용하여 로컬 데이터베이스를 실행한 경우, 아래 내용을 파일에 추가하세요. 이 값들은 `docker-compose.yml`의 기본값과 일치합니다.
 
 ```env
-# PostgreSQL 데이터베이스 URL
-DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE"
+# PostgreSQL 데이터베이스 URL (docker-compose.yml 기본값 기준)
+DATABASE_URL="postgresql://user:password@localhost:5432/db"
 ```
+
+만약 `docker-compose.yml`에서 설정을 변경했거나 다른 데이터베이스를 사용한다면, 해당 정보에 맞게 `DATABASE_URL`을 수정해야 합니다.
 
 ### 앱별 환경 변수
 

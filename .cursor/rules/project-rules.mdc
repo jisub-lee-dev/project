@@ -1,57 +1,57 @@
 # 🏗️ 프로젝트 규칙 (Project Rules for Monorepo)
 # 이 프로젝트는 Turborepo + Next.js + shadcn/ui 기반의 2025년 최신 스택 모노레포입니다.
-# AI는 아래의 구조와 기술 스택 규칙을 반드시 준수해야 합니다.
+# AI는 아래의 구조와 기술 스택, 개발 환경 규칙을 반드시 준수해야 합니다.
 
 ## 1. 🏛️ 프로젝트 핵심 원칙 (Core Project Principles)
 
-- **Monorepo First:** 코드 재사용성을 극대화합니다. 새로운 기능은 `packages/`에 공유 모듈로 만드는 것을 최우선으로 고려합니다.
-- **Strict Separation of Concerns (엄격한 관심사 분리):** 각 패키지(`ui`, `db`, `validation`, `utils`)의 경계를 반드시 지킵니다.
-- **Node.js 버전 준수:** 이 프로젝트는 **Node.js v24.x** 사용을 전제로 합니다.
-- **Configuration Hub:** 중앙화된 설정(`@repo/tsconfig`, `@repo/eslint-config`)을 정확히 이해하고 따릅니다.
+- **Monorepo First**: 코드 재사용성을 극대화합니다. 새로운 기능은 `packages/`에 공유 모듈로 만드는 것을 최우선으로 고려합니다.
+- **Strict Separation of Concerns (엄격한 관심사 분리)**: 각 패키지(`ui`, `db`, `validation`, `utils`)의 경계를 반드시 지킵니다.
+- **Node.js 버전 준수**: 이 프로젝트는 **Node.js v24.x** 사용을 전제로 합니다.
+- **Configuration Hub**: 중앙화된 설정(`@repo/tsconfig`, `@repo/eslint-config`)을 정확히 이해하고 따릅니다.
 
 ## 2. 📂 파일 및 디렉토리 구조 규칙 (File & Directory Structure Rules)
 
-- **UI 컴포넌트:**
+- **UI 컴포넌트**:
   - 재사용 가능한 모든 UI 컴포넌트는 **반드시 `packages/ui` 안에 생성**합니다.
-  - `shadcn/ui`로 새 컴포넌트를 추가할 때는, **프로젝트 루트에서** `pnpm dlx shadcn-ui@latest add [component-name] --cwd packages/ui` 명령을 사용해야 합니다.
-- **데이터베이스:**
+  - `shadcn/ui`로 새 컴포넌트를 추가할 때는, **프로젝트 루트에서** `pnpm dlx shadcn@latest add [component-name] --cwd packages/ui` 명령을 사용해야 합니다.
+- **데이터베이스**:
   - 스키마는 `packages/db/prisma/schema.prisma`에서만 수정합니다.
   - 모든 DB 접근은 **싱글톤(Singleton)으로 제공되는 `@repo/db`의 Prisma Client**를 사용합니다.
-- **유효성 검증:**
+- **유효성 검증**:
   - 모든 데이터 유효성 검증 스키마는 **`packages/validation` 안에 Zod를 사용하여 정의**합니다.
-- **유틸리티 함수:**
-  - 프로젝트 전반의 유틸리티 함수는 **`packages/utils`에 추가**합니다. `date-fns`, `lodash-es` 등을 적극 활용합니다.
-- **`apps/web`의 역할:**
-  - `packages/`의 모듈들을 **조립**하여 최종 결과물을 만드는 역할에 집중합니다. 페이지 단위의 고유한 로직만 이곳에 위치합니다.
 
 ## 3. 💻 기술 스택별 코드 생성 규칙 (Tech Stack-Specific Rules)
 
-- **Next.js & React:**
-  - **App Router 우선:** 모든 페이지와 컴포넌트는 **App Router** 방식으로 작성합니다.
-  - **Server Components by Default:** `'use client'`는 클라이언트 측 상호작용이 필수적인 경우에만 파일 최상단에 선언합니다.
-- **스타일링 (Styling):**
-  - **Tailwind CSS Only:** 모든 스타일은 **Tailwind CSS 유틸리티 클래스**로 구현합니다.
-  - **UI Libraries:** **`shadcn/ui`**, **`Radix UI`**, **`lucide-react`**(아이콘), **`framer-motion`**(애니메이션)을 적극적으로 활용합니다.
-- **폼 (Forms):**
+- **Next.js & React**:
+  - **App Router 우선**: 모든 페이지와 컴포넌트는 **App Router** 방식으로 작성합니다.
+  - **Server Components by Default**: `'use client'`는 클라이언트 측 상호작용이 필수적인 경우에만 파일 최상단에 선언합니다.
+- **스타일링 (Styling)**:
+  - **Tailwind CSS Only**: 모든 스타일은 **Tailwind CSS 유틸리티 클래스**로 구현합니다.
+- **폼 (Forms)**:
   - 폼은 **`react-hook-form`**과 **`@hookform/resolvers`**를 함께 사용합니다. 스키마는 `@repo/validation`에서 Zod로 정의된 것을 가져옵니다.
   - Zod 스키마 작성 시, `message` 옵션을 사용해 사용자 친화적인 에러 메시지를 포함합니다.
 
 ## 4. ⚙️ 명령어 및 워크플로우 (Commands & Workflow)
 
-- **Prisma 명령어:** `pnpm --filter=@repo/db [command]` 형식을 사용합니다. (예: `pnpm --filter=@repo/db db:generate`)
-- **`shadcn/ui` 컴포넌트 추가:** 새 컴포넌트 추가 시 `pnpm dlx shadcn-ui@latest add [component-name] --cwd packages/ui` 명령어를 사용하도록 안내합니다.
-- **Prisma Schema 변경 후:** `schema.prisma` 수정 시, 사용자에게 `pnpm --filter=@repo/db db:generate`와 `pnpm --filter=@repo/db db:migrate` 실행을 상기시킵니다.
+- **로컬 개발 환경 설정**:
+  1.  컴퓨터에 Docker가 설치 및 실행 중인지 확인합니다.
+  2.  `docker-compose up -d` 명령으로 로컬 데이터베이스를 실행합니다.
+  3.  루트에 `.env` 파일을 생성하고 `DATABASE_URL="postgresql://user:password@localhost:5432/db"`를 추가합니다.
+  4.  `pnpm --filter=@repo/db db:push` 명령으로 데이터베이스 스키마를 동기화합니다.
+  5.  `pnpm install`로 모든 의존성을 설치합니다.
+- **Prisma 명령어**: `pnpm --filter=@repo/db [command]` 형식을 사용합니다. (예: `pnpm --filter=@repo/db db:generate`)
+- **`shadcn/ui` 컴포넌트 추가**: 새 컴포넌트 추가 시 `pnpm dlx shadcn@latest add [component-name] --cwd packages/ui` 명령어를 사용하도록 안내합니다.
 
 ## 5. 🚑 문제 해결 (Troubleshooting)
 
-- **ESLint/TypeScript 오류 발생 시:** README의 '문제 해결' 섹션을 참조하여 해결책을 제시합니다.
+- **ESLint/TypeScript 오류 발생 시**: README의 '문제 해결' 섹션을 참조하여 해결책을 제시합니다.
   - `eslint-config-turbo` 버전 문제, `@typescript-eslint/parser` 설정 누락 등을 먼저 확인합니다.
-- **원인 불명 오류:** 가장 먼저 `pnpm clean` 후 `pnpm install`을 시도하도록 안내합니다.
+- **원인 불명 오류**: 가장 먼저 `pnpm clean` 후 `pnpm install`을 시도하도록 안내합니다.
 
 ## 6. 📚 공유 패키지 임포트 및 설정 (Cheatsheet)
 
-- **UI:** `import { Button } from '@repo/ui/components/ui/button';`
-- **DB:** `import { prisma } from '@repo/db';`
-- **Validation:** `import { LoginSchema } from '@repo/validation';`
-- **TSConfig:** `{"extends": "@repo/tsconfig/nextjs.json"}`
-- **ESLint:** `{"extends": ["@repo/eslint-config/next.js"]}`
+- **UI**: `import { Button } from '@repo/ui/components/ui/button';`
+- **DB**: `import { prisma } from '@repo/db';`
+- **Validation**: `import { LoginSchema } from '@repo/validation';`
+- **TSConfig**: `{"extends": "@repo/tsconfig/nextjs.json"}`
+- **ESLint**: `{"extends": ["@repo/eslint-config/next.js"]}`
