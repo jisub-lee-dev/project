@@ -5,6 +5,7 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
+    ".": "./src/index.ts",
     "./components/*": "./src/components/*",
     "./lib/*": "./src/lib/*"
   },
@@ -60,8 +61,7 @@
     "autoprefixer": "^10.4.17",
     "eslint": "^8.56.0",
     "postcss": "^8.4.33",
-    "tailwindcss": "^3.4.1",
-    "typescript": "^5.3.0"
+    "tailwindcss": "^3.4.1"
   },
   "peerDependencies": {
     "react": "^19.0.0"

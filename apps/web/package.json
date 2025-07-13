@@ -11,6 +11,9 @@
   },
   "dependencies": {
     "@repo/db": "workspace:*",
+    "@repo/ui": "workspace:*",
+    "@repo/utils": "workspace:*",
+    "@repo/validation": "workspace:*",
     "@repo/eslint-config": "workspace:*",
     "@repo/tsconfig": "workspace:*",
     "class-variance-authority": "^0.7.1",
