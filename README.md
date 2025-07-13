@@ -65,7 +65,7 @@ project/
 - **Turborepo**: 모노레포 빌드 시스템
 - **pnpm**: 패키지 매니저
 - **Next.js 15+**: React 프레임워크
-- **TypeScript 5+**: 타입 안전성
+- **TypeScript 5.3.3**: 타입 안전성 (최적화된 버전)
 
 ### 🎨 UI/UX 라이브러리
 - **shadcn/ui**: 복사 가능한 UI 컴포넌트 라이브러리
@@ -387,12 +387,12 @@ Vercel은 모노레포 구조를 자동으로 감지합니다. Git 저장소를 
     };
     ```
 
-### 3. TypeScript 버전 지원 경고
-`pnpm lint` 실행 시 `WARNING: You are currently running a version of TypeScript which is not officially supported...` 경고가 나타날 수 있습니다.
+### 3. TypeScript 버전 지원 경고 (해결됨)
+이전에 `pnpm lint` 실행 시 `WARNING: You are currently running a version of TypeScript which is not officially supported...` 경고가 나타났지만, 현재는 **TypeScript 5.3.3**으로 최적화되어 모든 경고가 해결되었습니다.
 
--   **원인**: 프로젝트에 설치된 TypeScript 버전이 `@typescript-eslint/parser`가 공식적으로 지원하는 버전보다 높은 경우입니다.
--   **영향**: 대부분의 경우 정상 작동하지만, 일부 최신 TypeScript 문법에서 예기치 않은 오류가 발생할 수 있습니다.
--   **해결책**: 당장 조치할 필요는 없지만, 문제가 발생하면 `@typescript-eslint/` 관련 패키지들을 최신 버전으로 업데이트하는 것을 고려해 보세요.
+-   **해결 상태**: ✅ 완료
+-   **적용된 해결책**: 모노레포 전체에서 TypeScript 5.3.3 단일 버전 사용
+-   **현재 상태**: 린트, 빌드, 타입 체크 모두 경고/오류 없음
 
 ### 4. 의존성 또는 캐시 문제
 오류의 원인을 알 수 없을 때 시도해 볼 수 있는 일반적인 해결책입니다.
@@ -404,6 +404,19 @@ pnpm clean
 # 2. 의존성 재설치
 pnpm install
 ```
+
+### 5. TypeScript 빌드 오류 (해결됨)
+`export const debounced = debounce;` 같은 외부 라이브러리 함수 export 시 타입 추론 오류가 발생할 수 있습니다.
+
+-   **해결책**: 명시적 타입 선언 사용
+  ```typescript
+  // ❌ 문제가 되는 방식
+  export const debounced = debounce;
+  
+  // ✅ 해결된 방식
+  export const debounced: typeof debounce = debounce;
+  ```
+-   **현재 상태**: ✅ 모든 타입 오류 해결됨
 
 ## 📚 추가 리소스
 
