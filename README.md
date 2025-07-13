@@ -118,7 +118,7 @@ pnpm dev
 1.  컴퓨터에 [Docker](https://www.docker.com/products/docker-desktop/)가 설치 및 실행 중인지 확인하세요.
 2.  프로젝트 루트에서 다음 명령어를 실행하여 데이터베이스를 시작합니다.
     ```bash
-    docker-compose up -d
+    docker compose up -d
     ```
 3.  데이터베이스 스키마를 적용하려면 다음 명령어를 실행하세요.
     ```bash
@@ -126,7 +126,7 @@ pnpm dev
     ```
 4.  데이터베이스를 중지하려면 다음 명령어를 사용합니다.
     ```bash
-    docker-compose down
+    docker compose down -v
     ```
 
 ## 📦 사용 가능한 스크립트
