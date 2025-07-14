@@ -120,14 +120,24 @@ pnpm dev
     ```bash
     docker compose up -d
     ```
-3.  데이터베이스 스키마를 적용하려면 다음 명령어를 실행하세요.
+3.  **환경 변수 설정**: Prisma가 데이터베이스에 연결할 수 있도록 환경 변수를 설정합니다.
+    ```bash
+    # 루트 환경 변수 파일 생성
+    cp .env.example .env
+    
+    # Prisma 패키지에 환경 변수 복사 (필수)
+    cp .env packages/db/.env
+    ```
+4.  데이터베이스 스키마를 적용하려면 다음 명령어를 실행하세요.
     ```bash
     pnpm --filter=@repo/db db:push
     ```
-4.  데이터베이스를 중지하려면 다음 명령어를 사용합니다.
+5.  데이터베이스를 중지하려면 다음 명령어를 사용합니다.
     ```bash
-    docker compose down -v
+    docker compose down
     ```
+
+> **💡 참고**: `packages/db/.env` 파일은 Prisma가 로컬 환경 변수를 찾기 위해 필요합니다. 이 파일은 `.gitignore`에 포함되어 Git에서 추적되지 않습니다.
 
 ## 📦 사용 가능한 스크립트
 
@@ -336,6 +346,17 @@ cp .env.example .env
 ```
 
 `.env.example` 파일은 로컬 PostgreSQL 데이터베이스 연결을 위한 기본 설정을 포함하고 있으며, `docker-compose.yml`의 기본값과 일치합니다. 만약 `docker-compose.yml`을 수정했거나 다른 데이터베이스를 사용한다면, 생성된 `.env` 파일의 값을 직접 수정해야 합니다.
+
+### Prisma 환경 변수 (`packages/db/.env`)
+
+Prisma는 `packages/db` 디렉토리에서 실행되므로, 별도의 환경 변수 파일이 필요합니다.
+
+```bash
+# Prisma 패키지에 환경 변수 복사
+cp .env packages/db/.env
+```
+
+> **⚠️ 중요**: 이 단계는 필수입니다. Prisma 명령어가 정상적으로 작동하려면 `packages/db/.env` 파일이 반드시 존재해야 합니다.
 
 ### 앱별 환경 변수 (`apps/web/.env.local`)
 
