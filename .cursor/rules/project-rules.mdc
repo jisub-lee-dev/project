@@ -65,7 +65,7 @@ pnpm --filter=@repo/ui fix-imports
 ### 유효성 검증 (@repo/validation)
 - **도메인별 구조**: `src/[도메인]/schemas.ts`에 도메인별 스키마 작성
 - **re-export**: `src/index.ts`에서 모든 도메인 스키마를 re-export
-- **사용법**: `import { TodoSchema } from '@repo/validation'`
+- **사용법**: `import { ProductSchema } from '@repo/validation'`
 
 ### 유틸리티 (@repo/utils)
 - **도메인별 구조**: `src/[도메인]/utils.ts`에 도메인별 함수 작성
@@ -190,10 +190,10 @@ import { Button, Card, Input } from '@repo/ui';
 
 // DB Client
 import { prisma } from '@repo/db';
-import { TodoModel } from '@repo/db';
+import { ProductModel } from '@repo/db';
 
 // Validation Schema
-import { TodoSchema, UserSchema } from '@repo/validation';
+import { ProductSchema, UserSchema } from '@repo/validation';
 
 // Utils
 import { formatDate, chunk, generateId } from '@repo/utils';
@@ -208,10 +208,10 @@ import { formatDate, chunk, generateId } from '@repo/utils';
 ```typescript
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { TodoSchema } from '@repo/validation';
+import { ProductSchema } from '@repo/validation';
 
 const form = useForm({
-  resolver: zodResolver(TodoSchema),
+  resolver: zodResolver(ProductSchema),
 });
 ```
 
@@ -285,7 +285,7 @@ pnpm --filter=@repo/ui fix-imports
 ### 유효성 검증 (@repo/validation)
 - **도메인별 구조**: `src/[도메인]/schemas.ts`에 도메인별 스키마 작성
 - **re-export**: `src/index.ts`에서 모든 도메인 스키마를 re-export
-- **사용법**: `import { TodoSchema } from '@repo/validation'`
+- **사용법**: `import { ProductSchema } from '@repo/validation'`
 
 ### 유틸리티 (@repo/utils)
 - **도메인별 구조**: `src/[도메인]/utils.ts`에 도메인별 함수 작성
@@ -410,10 +410,10 @@ import { Button, Card, Input } from '@repo/ui';
 
 // DB Client
 import { prisma } from '@repo/db';
-import { TodoModel } from '@repo/db';
+import { ProductModel } from '@repo/db';
 
 // Validation Schema
-import { TodoSchema, UserSchema } from '@repo/validation';
+import { ProductSchema, UserSchema } from '@repo/validation';
 
 // Utils
 import { formatDate, chunk, generateId } from '@repo/utils';
@@ -428,10 +428,10 @@ import { formatDate, chunk, generateId } from '@repo/utils';
 ```typescript
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { TodoSchema } from '@repo/validation';
+import { ProductSchema } from '@repo/validation';
 
 const form = useForm({
-  resolver: zodResolver(TodoSchema),
+  resolver: zodResolver(ProductSchema),
 });
 ```
 

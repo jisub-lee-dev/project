@@ -14,7 +14,7 @@
 ## 🏗️ 실제 폴더 구조 (2025 최신화)
 
 ```
-todo/
+project/
 ├── apps/
 │   └── web/                 # Next.js 웹 애플리케이션 (App Router)
 │       ├── src/
@@ -71,7 +71,7 @@ todo/
 │   │   ├── index.ts        # src/index.ts re-export
 │   │   └── src/
 │   │       ├── index.ts    # 모든 도메인 스키마 re-export
-│   │       ├── todo/
+│   │       ├── product/
 │   │       │   ├── schemas.ts
 │   │       │   └── index.ts
 │   │       ├── user/
@@ -125,7 +125,7 @@ todo/
 - **Turborepo**: 모노레포 빌드 시스템
 - **pnpm 10.12.4**: 패키지 매니저
 - **Next.js 15.3.5**: React 프레임워크 (App Router)
-- **TypeScript 5.8.3**: 타입 안전성
+- **TypeScript 5.3.3**: 타입 안전성
 - **React 19.1.0**: 최신 React 버전
 
 ### 🎨 UI/UX 라이브러리
@@ -158,10 +158,10 @@ todo/
 import { prisma } from '@repo/db';
 
 // 도메인별 모델 사용 (구현 예정)
-// import { TodoModel, UserModel } from '@repo/db';
+// import { UserModel, ProductModel } from '@repo/db';
 
 // 사용 예시
-const todos = await prisma.todo.findMany();
+const users = await prisma.user.findMany();
 ```
 
 ### @repo/ui
@@ -177,14 +177,14 @@ pnpm --filter=@repo/ui fix-imports
 ### @repo/validation
 ```typescript
 // 스키마 사용
-import { TodoSchema, UserSchema } from '@repo/validation';
+import { UserSchema, ProductSchema } from '@repo/validation';
 
 // React Hook Form과 연동
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 
 const form = useForm({
-  resolver: zodResolver(TodoSchema),
+  resolver: zodResolver(UserSchema),
 });
 ```
 
@@ -209,7 +209,7 @@ import { chunk } from '@repo/utils/array';
 ```bash
 # 1. 저장소 클론
 git clone <repository-url>
-cd todo
+cd project
 
 # 2. 데이터베이스 실행
 docker compose up -d
@@ -241,6 +241,7 @@ pnpm --filter=@repo/db db:push
 - **데이터베이스**: 스키마는 packages/db/prisma/schema.prisma에서만 수정
 - **유효성 검증**: 도메인별 스키마는 packages/validation/src/[도메인]/에 작성
 - **유틸리티**: 도메인별 함수는 packages/utils/src/[도메인]/에 작성
+- **새로운 앱 추가**: apps/ 디렉토리에 새로운 Next.js 앱 추가 가능
 
 ### 💻 기술 스택 규칙
 - **Next.js 15**: App Router 우선, Server Components 기본
@@ -331,13 +332,6 @@ pnpm add -D @types/react@^19.1.8 @types/react-dom@^19.1.6
 # 가장 먼저 시도
 pnpm clean && pnpm install
 ```
-
-## 📖 추가 문서
-
-- **PRD**: `docs/todo-manager-prd.md` - 제품 요구사항 문서
-- **TRD**: `docs/todo-manager-trd.md` - 기술 요구사항 문서
-- **구현 가이드**: `docs/todo-manager-implementation-guide.md` - 상세 구현 가이드
-- **개발 작업**: `tasks/` - 단계별 개발 작업 가이드
 
 ## 🚀 빠른 시작
 

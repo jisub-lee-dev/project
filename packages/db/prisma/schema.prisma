@@ -11,34 +11,28 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
+  id        String    @id @default(cuid())
+  email     String    @unique
   name      String?
   image     String?
-  todos     Todo[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   @@map("users")
-} 
+}
 
-model Todo {
+model Product {
   id          String   @id @default(cuid())
-  title       String
+  name        String
   description String?
-  completed   Boolean  @default(false)
-  priority    Priority @default(MEDIUM)
-  dueDate     DateTime?
+  price       Decimal  @db.Decimal(10, 2)
+  category    String?
+  inStock     Boolean  @default(true)
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@map("todos")
-}
-
-enum Priority {
-  LOW
-  MEDIUM
-  HIGH
+  @@map("products")
 }
