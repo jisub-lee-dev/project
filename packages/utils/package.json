@@ -13,6 +13,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@repo/validation": "workspace:*",
     "crypto-js": "^4.2.0",
     "date-fns": "^3.6.0",
     "decimal.js": "^10.4.3",

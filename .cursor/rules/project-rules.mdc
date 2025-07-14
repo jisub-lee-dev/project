@@ -2,10 +2,9 @@
 alwaysApply: true
 ---
 
-
 # 🏗️ 프로젝트 규칙 (Project Rules for Monorepo)
 
-이 프로젝트는 Turborepo + Next.js 15 + React 19 + shadcn/ui + Tailwind CSS v4 기반의 2025년 최신 스택 모노레포입니다.
+이 프로젝트는 **Turborepo + Next.js 15 + React 19 + shadcn/ui + Tailwind CSS v4 + Prisma + Zod** 등 2025년 최신 스택을 반영한 모노레포 환경입니다.
 
 AI는 아래의 구조와 기술 스택, 개발 환경 규칙을 반드시 준수해야 합니다.
 
@@ -17,29 +16,31 @@ AI는 아래의 구조와 기술 스택, 개발 환경 규칙을 반드시 준�
 
 ### Strict Separation of Concerns (엄격한 관심사 분리)
 - 각 공유 패키지는 명확한 단일 책임을 갖습니다
-- @repo/ui: 재사용 가능한 React 컴포넌트 (상태 관리 로직 포함 불가)
-- @repo/db: 데이터베이스 스키마(Prisma) 및 클라이언트
-- @repo/validation: Zod를 사용한 데이터 유효성 검사 스키마
-- @repo/utils: 특정 도메인에 종속되지 않는 순수 유틸리티 함수
+- **@repo/ui**: 재사용 가능한 React 컴포넌트 (상태 관리 로직 포함 불가)
+- **@repo/db**: 데이터베이스 스키마(Prisma) 및 클라이언트
+- **@repo/validation**: Zod를 사용한 데이터 유효성 검사 스키마
+- **@repo/utils**: 특정 도메인에 종속되지 않는 순수 유틸리티 함수
 
 ### Node.js 버전 준수
-- 이 프로젝트는 Node.js v24.x 와 pnpm 사용을 전제로 합니다
+- 이 프로젝트는 **Node.js v24.x** 와 **pnpm 10.12.4** 사용을 전제로 합니다
 - 모든 명령어와 환경은 이에 맞춰야 합니다
 
 ### Configuration Hub (중앙화된 설정)
-- TypeScript 설정은 @repo/tsconfig에서 중앙 관리됩니다
-- ESLint 설정은 apps/web에서는 Flat Config 방식으로 로컬 관리, packages에서는 @repo/eslint-config 사용
+- TypeScript 설정은 **@repo/tsconfig**에서 중앙 관리됩니다
+- ESLint 설정은 apps/web에서는 **Flat Config 방식**으로 로컬 관리, packages에서는 **@repo/eslint-config** 사용
 - 로컬에서 설정을 임의로 변경하지 마세요
 
 ## 2. 📂 파일 및 디렉토리 구조 규칙 (File & Directory Structure Rules)
 
 ### 환경 변수
-- .env 파일은 Git 추적 대상이 아닙니다
-- 새로운 개발 환경 설정 시, 반드시 각 *.example 파일을 복사하여(.env, .env.local) 구성하세요
+- `.env` 파일은 Git 추적 대상이 아닙니다
+- 새로운 개발 환경 설정 시, 반드시 각 `*.example` 파일을 복사하여 구성하세요
+  - `cp .env.example .env`
+  - `cp apps/web/.env.local.example apps/web/.env.local`
 
-### UI 컴포넌트
-- **생성 위치**: 재사용 가능한 모든 UI 컴포넌트는 반드시 packages/ui 안에 생성하세요
-- **shadcn/ui 추가**: 새 컴포넌트 추가 시, 프로젝트 루트에서 아래 명령어를 사용하세요. 이는 components.json 설정에 따라 올바른 위치에 컴포넌트를 설치합니다
+### UI 컴포넌트 (@repo/ui)
+- **생성 위치**: 재사용 가능한 모든 UI 컴포넌트는 반드시 `packages/ui` 안에 생성하세요
+- **shadcn/ui 추가**: 새 컴포넌트 추가 시, 프로젝트 루트에서 아래 명령어를 사용하세요
 
 ```bash
 pnpm dlx shadcn@latest add [component-name] --cwd packages/ui
@@ -52,22 +53,24 @@ pnpm dlx shadcn@latest add [component-name] --cwd packages/ui
 pnpm --filter=@repo/ui fix-imports
 ```
 
-이 스크립트는 shadcn/ui가 생성한 컴포넌트의 `@/lib/utils` 같은 절대 경로를 `../../lib/utils` 같은 상대 경로로 자동 변환하여 packages/ui 환경에서 올바르게 작동하도록 합니다.
+이 스크립트는 shadcn/ui가 생성한 컴포넌트의 `@/lib/utils` 같은 절대 경로를 `../../lib/utils` 같은 상대 경로로 자동 변환합니다.
 
-- **컴포넌트 Export**: packages/ui/src/index.ts 파일을 통해 모든 컴포넌트를 re-export하여, 다른 앱이나 패키지에서 `import { Button } from '@repo/ui';`와 같이 간결하게 임포트할 수 있도록 구조를 유지하세요
+- **컴포넌트 Export**: `packages/ui/src/index.ts` 파일을 통해 모든 컴포넌트를 re-export하여, 다른 앱이나 패키지에서 `import { Button } from '@repo/ui';`와 같이 간결하게 임포트할 수 있도록 구조를 유지하세요
 
-- **Export 방식:**
-```typescript
-// packages/ui/src/index.ts
-export * from "./components/ui/button";
-export * from "./components/ui/card";
-export * from "./components/ui/input";
-export * from "./lib/utils";
-```
-
-### 데이터베이스
-- **스키마 관리**: DB 스키마는 packages/db/prisma/schema.prisma 파일에서만 수정하세요
+### 데이터베이스 (@repo/db)
+- **스키마 관리**: DB 스키마는 `packages/db/prisma/schema.prisma` 파일에서만 수정하세요
 - **DB 클라이언트**: 모든 데이터베이스 접근은 @repo/db 패키지에서 export하는 싱글톤(Singleton) Prisma Client 인스턴스를 통해서만 이루어져야 합니다
+- **모델 구조**: `src/models/` 폴더에 도메인별 비즈니스 로직을 작성하세요
+
+### 유효성 검증 (@repo/validation)
+- **도메인별 구조**: `src/[도메인]/schemas.ts`에 도메인별 스키마 작성
+- **re-export**: `src/index.ts`에서 모든 도메인 스키마를 re-export
+- **사용법**: `import { TodoSchema } from '@repo/validation'`
+
+### 유틸리티 (@repo/utils)
+- **도메인별 구조**: `src/[도메인]/utils.ts`에 도메인별 함수 작성
+- **re-export**: `src/index.ts`에서 모든 도메인 유틸리티를 re-export
+- **사용법**: `import { formatDate } from '@repo/utils'`
 
 ## 3. 💻 기술 스택별 코드 생성 규칙 (Tech Stack-Specific Rules)
 
@@ -77,9 +80,9 @@ export * from "./lib/utils";
 - **React 19 기능 활용**: 새로운 React 기능들을 적극 활용하세요
 
 ### 스타일링 (Tailwind CSS v4)
-- **Tailwind CSS v4**: 최신 Tailwind CSS v4를 사용합니다
-- **PostCSS 플러그인**: @tailwindcss/postcss 플러그인을 활용하세요
-- **애니메이션**: tw-animate-css 패키지를 사용한 애니메이션을 활용하세요
+- **Tailwind CSS v4.1.11**: 최신 Tailwind CSS v4를 사용합니다
+- **PostCSS 플러그인**: `@tailwindcss/postcss` 플러그인을 활용하세요
+- **애니메이션**: `tw-animate-css` 패키지를 사용한 애니메이션을 활용하세요
 
 ### API 라우트
 - **응답 형식 표준화**: 모든 API 응답은 일관된 구조를 따릅니다
@@ -96,69 +99,132 @@ export * from "./lib/utils";
 - 인증 관련 모든 로직, API 라우트, 세션 관리는 NextAuth.js의 규칙과 모범 사례를 따릅니다
 
 ### 폼 (Forms)
-- **react-hook-form**과 **zod**를 사용한 강력한 타입-세이프 폼을 구현하세요
+- **react-hook-form 7.60.0**과 **zod**를 사용한 강력한 타입-세이프 폼을 구현하세요
 - 유효성 검사 스키마는 @repo/validation에서 정의된 Zod 스키마를 가져와 zodResolver와 함께 사용하세요
 
 ## 4. ⚙️ 명령어 및 워크플로우 (Commands & Workflow)
 
 ### 최초 개발 환경 설정
-- Docker가 설치 및 실행 중인지 확인하세요
-- `docker compose up -d`: 로컬 데이터베이스(PostgreSQL)를 실행하세요
-- `cp .env.example .env`: 루트 환경 변수 파일을 생성하세요
-- `cp apps/web/.env.local.example apps/web/.env.local`: web 앱의 환경 변수 파일을 생성하세요
-- apps/web/.env.local 파일의 NEXTAUTH_SECRET 값을 아래 명령어로 생성하여 붙여넣으세요 (Node.js 내장 crypto 모듈 사용)
-
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
-```
-
-- `pnpm install`: 모든 의존성을 설치하세요
-- `pnpm --filter=@repo/db db:push`: 데이터베이스 스키마를 동기화하세요
+1. **사전 요구사항**: Node.js v24.x, pnpm 10.12.4, Docker & Docker Compose
+2. **데이터베이스 실행**: `docker compose up -d`
+3. **환경 변수 설정**: 
+   ```bash
+   cp .env.example .env
+   cp apps/web/.env.local.example apps/web/.env.local
+   ```
+4. **NextAuth.js 시크릿 생성**:
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+   ```
+5. **의존성 설치**: `pnpm install`
+6. **데이터베이스 스키마 동기화**: `pnpm --filter=@repo/db db:push`
 
 ### 주요 명령어
-- **Prisma 관련**: `pnpm --filter=@repo/db [command]` (예: db:generate, db:studio)
-- **shadcn/ui 추가**: `pnpm dlx shadcn@latest add [component...] --cwd packages/ui`
-- **shadcn/ui 경로 수정**: `pnpm --filter=@repo/ui fix-imports`
+```bash
+# 개발 서버
+pnpm dev                    # 전체 개발 서버
+pnpm --filter=web dev       # web 앱만
+
+# 빌드 및 린트
+pnpm build                  # 전체 빌드
+pnpm lint                   # 전체 린트
+pnpm format                 # 포맷팅
+
+# Prisma 관련
+pnpm --filter=@repo/db db:generate
+pnpm --filter=@repo/db db:push
+pnpm --filter=@repo/db db:studio
+pnpm --filter=@repo/db db:migrate
+
+# shadcn/ui 컴포넌트 추가
+pnpm dlx shadcn@latest add [component] --cwd packages/ui
+pnpm --filter=@repo/ui fix-imports
+
+# 타입 체크
+pnpm --filter=@repo/ui type-check
+pnpm --filter=@repo/db type-check
+pnpm --filter=@repo/utils type-check
+pnpm --filter=@repo/validation type-check
+
+# 유지보수
+pnpm clean                  # 캐시 정리
+pnpm clean && pnpm install  # 전체 정리 및 재설치
+```
 
 ### 커밋 컨벤션
-- Conventional Commits 규칙을 엄격하게 따릅니다
-- feat: 새로운 기능 추가
-- fix: 버그 수정
-- docs: 문서 변경
-- style: 코드 포맷팅, 세미콜론 누락 등 (코드 변경 없음)
-- refactor: 코드 리팩토링
-- test: 테스트 코드 추가/수정
-- chore: 빌드, 패키지 매니저 설정 등
+- **Conventional Commits** 규칙을 엄격하게 따릅니다
+- `feat`: 새로운 기능 추가
+- `fix`: 버그 수정
+- `docs`: 문서 변경
+- `style`: 코드 포맷팅, 세미콜론 누락 등 (코드 변경 없음)
+- `refactor`: 코드 리팩토링
+- `test`: 테스트 코드 추가/수정
+- `chore`: 빌드, 패키지 매니저 설정 등
 - 예시: `feat(auth): add password reset feature`
 
 ## 5. 🚑 문제 해결 (Troubleshooting)
 
-### ESLint/TypeScript 오류
-- 먼저 중앙 설정(@repo/eslint-config, @repo/tsconfig)과의 불일치가 없는지 확인하고, IDE의 TypeScript 서버를 재시작하세요
-- apps/web의 ESLint는 Flat Config 방식이므로 eslint.config.mjs 파일을 확인하세요
+### TypeScript/ESLint 오류
+1. 중앙 설정(@repo/eslint-config, @repo/tsconfig)과의 불일치 확인
+2. IDE TypeScript 서버 재시작
+3. 캐시 정리: `pnpm clean && pnpm install`
 
 ### shadcn/ui import 경로 오류
 - **오류**: `Cannot resolve module '@/lib/utils'` 또는 유사한 절대 경로 오류
 - **해결**: `pnpm --filter=@repo/ui fix-imports` 스크립트 실행
 - **수동 해결**: `@/lib/utils` → `../../lib/utils`, `@/components/ui/` → `./` 로 변경
 
-### 의존성 충돌 및 알 수 없는 오류
-- 캐시 및 node_modules를 정리하는 아래 명령어를 가장 먼저 시도하도록 안내하세요
+### React 19 호환성 문제
+- **타입 정의 업데이트**: `pnpm add -D @types/react@^19.1.8 @types/react-dom@^19.1.6`
+- **의존성 충돌**: `pnpm clean && pnpm install`로 캐시/노드모듈 정리
 
-```bash
-pnpm clean && pnpm install
-```
+### 의존성 충돌 및 알 수 없는 오류
+- 가장 먼저 시도: `pnpm clean && pnpm install`
 
 ## 6. 📚 핵심 임포트 및 설정 (Cheatsheet)
 
-- **UI Components**: `import { Button, Card } from '@repo/ui';`
-- **DB Client**: `import { prisma } from '@repo/db';`
+### 패키지 임포트
+```typescript
+// UI Components
+import { Button, Card, Input } from '@repo/ui';
+
+// DB Client
+import { prisma } from '@repo/db';
+import { TodoModel } from '@repo/db';
+
+// Validation Schema
+import { TodoSchema, UserSchema } from '@repo/validation';
+
+// Utils
+import { formatDate, chunk, generateId } from '@repo/utils';
+```
+
+### 설정 파일
+- **TSConfig** (apps/web/tsconfig.json): `{"extends": "@repo/tsconfig/nextjs.json"}`
+- **ESLint** (apps/web/eslint.config.mjs): Flat Config 방식으로 직접 설정
+- **Tailwind** (apps/web/tailwind.config.ts): Tailwind CSS v4 설정
+
+### React Hook Form + Zod 연동
+```typescript
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { TodoSchema } from '@repo/validation';
+
+const form = useForm({
+  resolver: zodResolver(TodoSchema),
+});
+```
+
+---
+
+**이 규칙을 준수하여 일관성 있고 유지보수 가능한 코드를 작성하세요! 🚀**
 - **Validation Schema**: `import { LoginSchema } from '@repo/validation';`
 - **TSConfig** (in apps/web/tsconfig.json): `{"extends": "@repo/tsconfig/nextjs.json"}`
 - **ESLint** (in apps/web/eslint.config.mjs): Flat Config 방식으로 직접 설정
+
 # 🏗️ 프로젝트 규칙 (Project Rules for Monorepo)
 
-이 프로젝트는 Turborepo + Next.js 15 + React 19 + shadcn/ui + Tailwind CSS v4 기반의 2025년 최신 스택 모노레포입니다.
+이 프로젝트는 **Turborepo + Next.js 15 + React 19 + shadcn/ui + Tailwind CSS v4 + Prisma + Zod** 등 2025년 최신 스택을 반영한 모노레포 환경입니다.
 
 AI는 아래의 구조와 기술 스택, 개발 환경 규칙을 반드시 준수해야 합니다.
 
@@ -170,29 +236,31 @@ AI는 아래의 구조와 기술 스택, 개발 환경 규칙을 반드시 준�
 
 ### Strict Separation of Concerns (엄격한 관심사 분리)
 - 각 공유 패키지는 명확한 단일 책임을 갖습니다
-- @repo/ui: 재사용 가능한 React 컴포넌트 (상태 관리 로직 포함 불가)
-- @repo/db: 데이터베이스 스키마(Prisma) 및 클라이언트
-- @repo/validation: Zod를 사용한 데이터 유효성 검사 스키마
-- @repo/utils: 특정 도메인에 종속되지 않는 순수 유틸리티 함수
+- **@repo/ui**: 재사용 가능한 React 컴포넌트 (상태 관리 로직 포함 불가)
+- **@repo/db**: 데이터베이스 스키마(Prisma) 및 클라이언트
+- **@repo/validation**: Zod를 사용한 데이터 유효성 검사 스키마
+- **@repo/utils**: 특정 도메인에 종속되지 않는 순수 유틸리티 함수
 
 ### Node.js 버전 준수
-- 이 프로젝트는 Node.js v24.x 와 pnpm 사용을 전제로 합니다
+- 이 프로젝트는 **Node.js v24.x** 와 **pnpm 10.12.4** 사용을 전제로 합니다
 - 모든 명령어와 환경은 이에 맞춰야 합니다
 
 ### Configuration Hub (중앙화된 설정)
-- TypeScript 설정은 @repo/tsconfig에서 중앙 관리됩니다
-- ESLint 설정은 apps/web에서는 Flat Config 방식으로 로컬 관리, packages에서는 @repo/eslint-config 사용
+- TypeScript 설정은 **@repo/tsconfig**에서 중앙 관리됩니다
+- ESLint 설정은 apps/web에서는 **Flat Config 방식**으로 로컬 관리, packages에서는 **@repo/eslint-config** 사용
 - 로컬에서 설정을 임의로 변경하지 마세요
 
 ## 2. 📂 파일 및 디렉토리 구조 규칙 (File & Directory Structure Rules)
 
 ### 환경 변수
-- .env 파일은 Git 추적 대상이 아닙니다
-- 새로운 개발 환경 설정 시, 반드시 각 *.example 파일을 복사하여(.env, .env.local) 구성하세요
+- `.env` 파일은 Git 추적 대상이 아닙니다
+- 새로운 개발 환경 설정 시, 반드시 각 `*.example` 파일을 복사하여 구성하세요
+  - `cp .env.example .env`
+  - `cp apps/web/.env.local.example apps/web/.env.local`
 
-### UI 컴포넌트
-- **생성 위치**: 재사용 가능한 모든 UI 컴포넌트는 반드시 packages/ui 안에 생성하세요
-- **shadcn/ui 추가**: 새 컴포넌트 추가 시, 프로젝트 루트에서 아래 명령어를 사용하세요. 이는 components.json 설정에 따라 올바른 위치에 컴포넌트를 설치합니다
+### UI 컴포넌트 (@repo/ui)
+- **생성 위치**: 재사용 가능한 모든 UI 컴포넌트는 반드시 `packages/ui` 안에 생성하세요
+- **shadcn/ui 추가**: 새 컴포넌트 추가 시, 프로젝트 루트에서 아래 명령어를 사용하세요
 
 ```bash
 pnpm dlx shadcn@latest add [component-name] --cwd packages/ui
@@ -205,13 +273,24 @@ pnpm dlx shadcn@latest add [component-name] --cwd packages/ui
 pnpm --filter=@repo/ui fix-imports
 ```
 
-이 스크립트는 shadcn/ui가 생성한 컴포넌트의 `@/lib/utils` 같은 절대 경로를 `../../lib/utils` 같은 상대 경로로 자동 변환하여 packages/ui 환경에서 올바르게 작동하도록 합니다.
+이 스크립트는 shadcn/ui가 생성한 컴포넌트의 `@/lib/utils` 같은 절대 경로를 `../../lib/utils` 같은 상대 경로로 자동 변환합니다.
 
-- **컴포넌트 Export**: packages/ui/src/index.ts 파일을 통해 모든 컴포넌트를 re-export하여, 다른 앱이나 패키지에서 `import { Button } from '@repo/ui';`와 같이 간결하게 임포트할 수 있도록 구조를 유지하세요
+- **컴포넌트 Export**: `packages/ui/src/index.ts` 파일을 통해 모든 컴포넌트를 re-export하여, 다른 앱이나 패키지에서 `import { Button } from '@repo/ui';`와 같이 간결하게 임포트할 수 있도록 구조를 유지하세요
 
-### 데이터베이스
-- **스키마 관리**: DB 스키마는 packages/db/prisma/schema.prisma 파일에서만 수정하세요
+### 데이터베이스 (@repo/db)
+- **스키마 관리**: DB 스키마는 `packages/db/prisma/schema.prisma` 파일에서만 수정하세요
 - **DB 클라이언트**: 모든 데이터베이스 접근은 @repo/db 패키지에서 export하는 싱글톤(Singleton) Prisma Client 인스턴스를 통해서만 이루어져야 합니다
+- **모델 구조**: `src/models/` 폴더에 도메인별 비즈니스 로직을 작성하세요
+
+### 유효성 검증 (@repo/validation)
+- **도메인별 구조**: `src/[도메인]/schemas.ts`에 도메인별 스키마 작성
+- **re-export**: `src/index.ts`에서 모든 도메인 스키마를 re-export
+- **사용법**: `import { TodoSchema } from '@repo/validation'`
+
+### 유틸리티 (@repo/utils)
+- **도메인별 구조**: `src/[도메인]/utils.ts`에 도메인별 함수 작성
+- **re-export**: `src/index.ts`에서 모든 도메인 유틸리티를 re-export
+- **사용법**: `import { formatDate } from '@repo/utils'`
 
 ## 3. 💻 기술 스택별 코드 생성 규칙 (Tech Stack-Specific Rules)
 
@@ -221,9 +300,9 @@ pnpm --filter=@repo/ui fix-imports
 - **React 19 기능 활용**: 새로운 React 기능들을 적극 활용하세요
 
 ### 스타일링 (Tailwind CSS v4)
-- **Tailwind CSS v4**: 최신 Tailwind CSS v4를 사용합니다
-- **PostCSS 플러그인**: @tailwindcss/postcss 플러그인을 활용하세요
-- **애니메이션**: tw-animate-css 패키지를 사용한 애니메이션을 활용하세요
+- **Tailwind CSS v4.1.11**: 최신 Tailwind CSS v4를 사용합니다
+- **PostCSS 플러그인**: `@tailwindcss/postcss` 플러그인을 활용하세요
+- **애니메이션**: `tw-animate-css` 패키지를 사용한 애니메이션을 활용하세요
 
 ### API 라우트
 - **응답 형식 표준화**: 모든 API 응답은 일관된 구조를 따릅니다
@@ -240,63 +319,125 @@ pnpm --filter=@repo/ui fix-imports
 - 인증 관련 모든 로직, API 라우트, 세션 관리는 NextAuth.js의 규칙과 모범 사례를 따릅니다
 
 ### 폼 (Forms)
-- **react-hook-form**과 **zod**를 사용한 강력한 타입-세이프 폼을 구현하세요
+- **react-hook-form 7.60.0**과 **zod**를 사용한 강력한 타입-세이프 폼을 구현하세요
 - 유효성 검사 스키마는 @repo/validation에서 정의된 Zod 스키마를 가져와 zodResolver와 함께 사용하세요
 
 ## 4. ⚙️ 명령어 및 워크플로우 (Commands & Workflow)
 
 ### 최초 개발 환경 설정
-- Docker가 설치 및 실행 중인지 확인하세요
-- `docker compose up -d`: 로컬 데이터베이스(PostgreSQL)를 실행하세요
-- `cp .env.example .env`: 루트 환경 변수 파일을 생성하세요
-- `cp apps/web/.env.local.example apps/web/.env.local`: web 앱의 환경 변수 파일을 생성하세요
-- apps/web/.env.local 파일의 NEXTAUTH_SECRET 값을 아래 명령어로 생성하여 붙여넣으세요 (Node.js 내장 crypto 모듈 사용)
-
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
-```
-
-- `pnpm install`: 모든 의존성을 설치하세요
-- `pnpm --filter=@repo/db db:push`: 데이터베이스 스키마를 동기화하세요
+1. **사전 요구사항**: Node.js v24.x, pnpm 10.12.4, Docker & Docker Compose
+2. **데이터베이스 실행**: `docker compose up -d`
+3. **환경 변수 설정**: 
+   ```bash
+   cp .env.example .env
+   cp apps/web/.env.local.example apps/web/.env.local
+   ```
+4. **NextAuth.js 시크릿 생성**:
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+   ```
+5. **의존성 설치**: `pnpm install`
+6. **데이터베이스 스키마 동기화**: `pnpm --filter=@repo/db db:push`
 
 ### 주요 명령어
-- **Prisma 관련**: `pnpm --filter=@repo/db [command]` (예: db:generate, db:studio)
-- **shadcn/ui 추가**: `pnpm dlx shadcn@latest add [component...] --cwd packages/ui`
-- **shadcn/ui 경로 수정**: `pnpm --filter=@repo/ui fix-imports`
+```bash
+# 개발 서버
+pnpm dev                    # 전체 개발 서버
+pnpm --filter=web dev       # web 앱만
+
+# 빌드 및 린트
+pnpm build                  # 전체 빌드
+pnpm lint                   # 전체 린트
+pnpm format                 # 포맷팅
+
+# Prisma 관련
+pnpm --filter=@repo/db db:generate
+pnpm --filter=@repo/db db:push
+pnpm --filter=@repo/db db:studio
+pnpm --filter=@repo/db db:migrate
+
+# shadcn/ui 컴포넌트 추가
+pnpm dlx shadcn@latest add [component] --cwd packages/ui
+pnpm --filter=@repo/ui fix-imports
+
+# 타입 체크
+pnpm --filter=@repo/ui type-check
+pnpm --filter=@repo/db type-check
+pnpm --filter=@repo/utils type-check
+pnpm --filter=@repo/validation type-check
+
+# 유지보수
+pnpm clean                  # 캐시 정리
+pnpm clean && pnpm install  # 전체 정리 및 재설치
+```
 
 ### 커밋 컨벤션
-- Conventional Commits 규칙을 엄격하게 따릅니다
-- feat: 새로운 기능 추가
-- fix: 버그 수정
-- docs: 문서 변경
-- style: 코드 포맷팅, 세미콜론 누락 등 (코드 변경 없음)
-- refactor: 코드 리팩토링
-- test: 테스트 코드 추가/수정
-- chore: 빌드, 패키지 매니저 설정 등
+- **Conventional Commits** 규칙을 엄격하게 따릅니다
+- `feat`: 새로운 기능 추가
+- `fix`: 버그 수정
+- `docs`: 문서 변경
+- `style`: 코드 포맷팅, 세미콜론 누락 등 (코드 변경 없음)
+- `refactor`: 코드 리팩토링
+- `test`: 테스트 코드 추가/수정
+- `chore`: 빌드, 패키지 매니저 설정 등
 - 예시: `feat(auth): add password reset feature`
 
 ## 5. 🚑 문제 해결 (Troubleshooting)
 
-### ESLint/TypeScript 오류
-- 먼저 중앙 설정(@repo/eslint-config, @repo/tsconfig)과의 불일치가 없는지 확인하고, IDE의 TypeScript 서버를 재시작하세요
-- apps/web의 ESLint는 Flat Config 방식이므로 eslint.config.mjs 파일을 확인하세요
+### TypeScript/ESLint 오류
+1. 중앙 설정(@repo/eslint-config, @repo/tsconfig)과의 불일치 확인
+2. IDE TypeScript 서버 재시작
+3. 캐시 정리: `pnpm clean && pnpm install`
 
 ### shadcn/ui import 경로 오류
 - **오류**: `Cannot resolve module '@/lib/utils'` 또는 유사한 절대 경로 오류
 - **해결**: `pnpm --filter=@repo/ui fix-imports` 스크립트 실행
 - **수동 해결**: `@/lib/utils` → `../../lib/utils`, `@/components/ui/` → `./` 로 변경
 
-### 의존성 충돌 및 알 수 없는 오류
-- 캐시 및 node_modules를 정리하는 아래 명령어를 가장 먼저 시도하도록 안내하세요
+### React 19 호환성 문제
+- **타입 정의 업데이트**: `pnpm add -D @types/react@^19.1.8 @types/react-dom@^19.1.6`
+- **의존성 충돌**: `pnpm clean && pnpm install`로 캐시/노드모듈 정리
 
-```bash
-pnpm clean && pnpm install
-```
+### 의존성 충돌 및 알 수 없는 오류
+- 가장 먼저 시도: `pnpm clean && pnpm install`
 
 ## 6. 📚 핵심 임포트 및 설정 (Cheatsheet)
 
-- **UI Components**: `import { Button, Card } from '@repo/ui';`
-- **DB Client**: `import { prisma } from '@repo/db';`
+### 패키지 임포트
+```typescript
+// UI Components
+import { Button, Card, Input } from '@repo/ui';
+
+// DB Client
+import { prisma } from '@repo/db';
+import { TodoModel } from '@repo/db';
+
+// Validation Schema
+import { TodoSchema, UserSchema } from '@repo/validation';
+
+// Utils
+import { formatDate, chunk, generateId } from '@repo/utils';
+```
+
+### 설정 파일
+- **TSConfig** (apps/web/tsconfig.json): `{"extends": "@repo/tsconfig/nextjs.json"}`
+- **ESLint** (apps/web/eslint.config.mjs): Flat Config 방식으로 직접 설정
+- **Tailwind** (apps/web/tailwind.config.ts): Tailwind CSS v4 설정
+
+### React Hook Form + Zod 연동
+```typescript
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { TodoSchema } from '@repo/validation';
+
+const form = useForm({
+  resolver: zodResolver(TodoSchema),
+});
+```
+
+---
+
+**이 규칙을 준수하여 일관성 있고 유지보수 가능한 코드를 작성하세요! 🚀**
 - **Validation Schema**: `import { LoginSchema } from '@repo/validation';`
 - **TSConfig** (in apps/web/tsconfig.json): `{"extends": "@repo/tsconfig/nextjs.json"}`
 - **ESLint** (in apps/web/eslint.config.mjs): Flat Config 방식으로 직접 설정
