@@ -1,8 +1,8 @@
-# Vercel 배포 가이드 (가장 쉬운 방법)
+# Vercel 배포 가이드 (모노레포 템플릿)
 
 ## 📋 문서 정보
 
-- **프로젝트명**: Todo Manager
+- **프로젝트 타입**: Turborepo + Next.js 모노레포
 - **배포 플랫폼**: Vercel
 - **데이터베이스**: Vercel Postgres
 - **문서 타입**: 배포 가이드
@@ -10,7 +10,7 @@
 
 ## 🎯 개요
 
-이 가이드는 Todo Manager 프로젝트를 Vercel에 배포하는 가장 쉬운 방법을 설명합니다. 복잡한 설정 없이 핵심만 간단하게 안내합니다.
+이 가이드는 Turborepo + Next.js 모노레포 프로젝트를 Vercel에 배포하는 가장 쉬운 방법을 설명합니다. 복잡한 설정 없이 핵심만 간단하게 안내합니다.
 
 ## 🚀 1단계: Vercel에 프로젝트 연결
 
@@ -29,12 +29,12 @@
 
 3. **New Project 클릭**
    - **Import Git Repository** 선택
-   - Todo Manager 저장소 선택
+   - 모노레포 저장소 선택
 
 4. **프로젝트 설정**
    ```
    Framework: Next.js
-   Root Directory: apps/web
+   Root Directory: apps/web (또는 메인 앱 디렉토리)
    Build Command: pnpm build
    Install Command: pnpm install
    ```
@@ -53,7 +53,7 @@
 
 4. **설정 입력**
    ```
-   Database Name: todo-db
+   Database Name: your-project-db
    Region: 가장 가까운 리전 (예: Seoul)
    Plan: Hobby (무료) 또는 Pro
    ```
@@ -89,17 +89,17 @@ POSTGRES_DATABASE="..."
 
 #### 필수 설정
 ```bash
-# NextAuth.js 설정
+# NextAuth.js 설정 (인증 사용 시)
 Name: NEXTAUTH_URL
 Value: https://your-project.vercel.app
 Environment: Production, Preview, Development
 
 Name: NEXTAUTH_SECRET
-Value: LcEfXXnp8xGVbjTAteVgvLJbn8UYohH9e8hRK3AzKGE=
+Value: your-nextauth-secret-key-here
 Environment: Production, Preview, Development
 ```
 
-#### OAuth 설정 (선택사항)
+#### OAuth 설정 (인증 사용 시)
 ```bash
 # Google OAuth
 Name: GOOGLE_CLIENT_ID
@@ -124,7 +124,7 @@ Environment: Production, Preview, Development
 ```bash
 # 앱 설정
 Name: APP_NAME
-Value: Todo Manager
+Value: Your App Name
 Environment: Production, Preview, Development
 
 Name: APP_VERSION
@@ -150,7 +150,7 @@ Value: false
 Environment: Production, Preview, Development
 ```
 
-## 🔐 4단계: OAuth 설정 (로그인 기능)
+## 🔐 4단계: OAuth 설정 (인증 기능 사용 시)
 
 ### Google 로그인 설정
 
@@ -244,9 +244,10 @@ datasource db {
 // ... 나머지 스키마는 그대로 유지
 ```
 
-### apps/web/src/lib/auth.ts 확인
+### NextAuth.js 설정 (인증 사용 시)
 
 ```typescript
+// apps/web/src/lib/auth.ts
 import { NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import GitHubProvider from 'next-auth/providers/github';
@@ -275,16 +276,15 @@ export const authOptions: NextAuthOptions = {
    - `https://your-project.vercel.app` 접속
    - 페이지가 정상적으로 로드되는지 확인
 
-2. **로그인 테스트**
-   - Google 로그인 버튼 클릭
-   - GitHub 로그인 버튼 클릭
-   - 로그인 후 리다이렉트 확인
+2. **기능 테스트**
+   - 주요 기능들이 정상 작동하는지 확인
+   - API 엔드포인트 테스트
+   - 데이터베이스 연결 확인
 
-3. **할일 기능 테스트**
-   - 새 할일 추가
-   - 할일 수정
-   - 할일 삭제
-   - 완료 상태 토글
+3. **인증 테스트** (인증 사용 시)
+   - 로그인/로그아웃 기능
+   - OAuth 제공자 연결
+   - 세션 관리
 
 4. **데이터베이스 확인**
    - Vercel Storage → Databases
@@ -324,6 +324,20 @@ pnpm build
 # 의존성 문제 확인
 ```
 
+#### 5. 모노레포 관련 오류
+```bash
+# Turborepo 캐시 정리
+pnpm clean
+
+# 의존성 재설치
+pnpm install
+
+# 패키지별 빌드 테스트
+pnpm --filter=@repo/db build
+pnpm --filter=@repo/ui build
+pnpm --filter=web build
+```
+
 ### 유용한 명령어들
 
 ```bash
@@ -338,6 +352,12 @@ vercel ls
 
 # 로그 확인
 vercel logs --follow
+
+# 모노레포 관련
+pnpm clean                    # 캐시 정리
+pnpm build                    # 전체 빌드
+pnpm --filter=web dev         # 특정 앱 개발 서버
+pnpm --filter=@repo/db db:push # DB 스키마 동기화
 ```
 
 ## 📋 체크리스트
@@ -347,14 +367,16 @@ vercel logs --follow
 - [ ] Vercel 프로젝트 생성 완료
 - [ ] Vercel Postgres 데이터베이스 생성 완료
 - [ ] 환경 변수 설정 완료
-- [ ] OAuth 제공자 설정 완료 (선택사항)
+- [ ] OAuth 제공자 설정 완료 (인증 사용 시)
 - [ ] Prisma 스키마 수정 완료
+- [ ] 모노레포 빌드 테스트 완료
 
 ### 배포 후 확인사항
 - [ ] 웹사이트 접속 가능
-- [ ] 로그인 기능 작동
-- [ ] 할일 추가/수정/삭제 가능
-- [ ] 데이터베이스에 데이터 저장됨
+- [ ] 주요 기능 작동 확인
+- [ ] API 엔드포인트 정상 작동
+- [ ] 데이터베이스 연결 확인
+- [ ] 인증 기능 작동 (인증 사용 시)
 - [ ] 모바일에서 접속 가능
 
 ## 💰 비용 정보
@@ -384,7 +406,7 @@ vercel logs --follow
 ### 무료로 시작하기
 1. **Vercel Hobby 플랜** 사용 (무료)
 2. **Vercel Postgres Hobby** 사용 ($20/월)
-3. **총 월 $20**으로 완전한 Todo 앱 운영
+3. **총 월 $20**으로 완전한 웹 앱 운영
 
 ## 🎯 핵심 포인트
 
@@ -395,6 +417,14 @@ vercel logs --follow
 - ✅ **자동 스케일링**: 트래픽에 따라 자동 확장
 - ✅ **통합 데이터베이스**: Postgres 바로 연결
 - ✅ **환경 변수 관리**: 대시보드에서 쉽게 관리
+- ✅ **모노레포 지원**: Turborepo 완벽 지원
+
+### 모노레포 배포의 장점
+- ✅ **단일 저장소**: 모든 앱과 패키지 통합 관리
+- ✅ **공유 코드**: 패키지 간 코드 재사용
+- ✅ **일관된 배포**: 모든 앱 동시 배포
+- ✅ **캐싱 최적화**: Turborepo 빌드 캐싱
+- ✅ **타입 안전성**: 패키지 간 타입 공유
 
 ### 완료 후 할 수 있는 것들
 - 📱 **모바일에서 접속** 가능
@@ -402,6 +432,7 @@ vercel logs --follow
 - 🔄 **실시간 업데이트** (Git 푸시 시)
 - 📊 **사용자 통계** 확인 가능
 - 🌍 **글로벌 접속** 가능
+- 🚀 **새로운 앱 추가** 용이
 
 ## 🚀 다음 단계
 
@@ -410,16 +441,25 @@ vercel logs --follow
 2. **성능 모니터링** 추가 (Sentry 등)
 3. **자동 백업** 설정
 4. **팀 협업** 기능 추가
+5. **CI/CD 파이프라인** 구축
 
 ### 확장 가능한 기능들
 - 📧 **이메일 알림** 기능
 - 📱 **PWA** 설정
 - 🔔 **푸시 알림** 기능
 - 📊 **애널리틱스** 추가
+- 🔐 **고급 인증** (2FA, 소셜 로그인)
+- 🌐 **다국어 지원**
+
+### 모노레포 확장
+- 📱 **모바일 앱** 추가 (React Native)
+- 🖥️ **관리자 패널** 추가
+- 🔌 **API 서버** 분리
+- 📊 **대시보드** 앱 추가
 
 ---
 
-**이제 Vercel에서 완전히 운영되는 Todo Manager가 완성됩니다! 🎉**
+**이제 Vercel에서 완전히 운영되는 모노레포 웹 앱이 완성됩니다! 🎉**
 
 복잡한 서버 설정 없이도 전문적인 웹 앱을 만들 수 있습니다.
 
@@ -427,4 +467,5 @@ vercel logs --follow
 
 **문서 버전**: 1.0.0  
 **최종 수정일**: 2025년 1월  
-**작성자**: 개발팀 
+**작성자**: 개발팀  
+**적용 프로젝트**: Turborepo + Next.js 모노레포 
