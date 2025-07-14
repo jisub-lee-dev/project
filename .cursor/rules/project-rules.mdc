@@ -41,7 +41,7 @@ AI는 아래의 구조와 기술 스택, 개발 환경 규칙을 반드시 준�
 - **shadcn/ui 추가**: 새 컴포넌트 추가 시, 프로젝트 루트에서 아래 명령어를 사용하세요. 이는 components.json 설정에 따라 올바른 위치에 컴포넌트를 설치합니다
 
 ```bash
-pnpm dlx shadcn-ui@latest add [component-name] --cwd packages/ui
+pnpm dlx shadcn@latest add [component-name] --cwd packages/ui
 ```
 
 - **컴포넌트 Export**: packages/ui/src/index.ts 파일을 통해 모든 컴포넌트를 re-export하여, 다른 앱이나 패키지에서 `import { Button } from '@repo/ui';`와 같이 간결하게 임포트할 수 있도록 구조를 유지하세요
@@ -98,7 +98,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 
 ### 주요 명령어
 - **Prisma 관련**: `pnpm --filter=@repo/db [command]` (예: db:generate, db:studio)
-- **shadcn/ui 추가**: `pnpm dlx shadcn-ui@latest add [component...] --cwd packages/ui`
+- **shadcn/ui 추가**: `pnpm dlx shadcn@latest add [component...] --cwd packages/ui`
 
 ### 커밋 컨벤션
 - Conventional Commits 규칙을 엄격하게 따릅니다
