@@ -263,6 +263,15 @@ pnpm dlx shadcn@latest add [component-name] --cwd packages/ui
 ```
 이 명령어는 `packages/ui` 디렉토리에 컴포넌트를 직접 추가합니다.
 
+**⚠️ 중요**: shadcn/ui 컴포넌트 설치 후에는 반드시 import 경로 수정 스크립트를 실행해야 합니다.
+
+```bash
+# 컴포넌트 설치 후 자동으로 import 경로 수정
+pnpm --filter=@repo/ui fix-imports
+```
+
+이 스크립트는 shadcn/ui가 생성한 컴포넌트의 `@/lib/utils` 같은 절대 경로를 `../../lib/utils` 같은 상대 경로로 자동 변환하여 packages/ui 환경에서 올바르게 작동하도록 합니다.
+
 ### @repo/validation
 
 `zod`를 사용한 유효성 검증 스키마를 공유하는 패키지입니다.
