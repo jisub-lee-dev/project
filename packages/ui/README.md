@@ -138,7 +138,7 @@ import { cn } from "@repo/ui/lib/utils";
 
 ### 로컬 개발
 
-```bash
+````bash
 # 패키지 빌드
 pnpm build
 
@@ -210,7 +210,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 Button.displayName = "Button";
 
 export { Button, buttonVariants };
-```
+````
 
 ## 🎬 애니메이션 (Framer Motion)
 

@@ -35,7 +35,7 @@
     "fix-imports": "node scripts/fix-imports.js"
   },
   "dependencies": {
-    "@hookform/resolvers": "^3.3.2",
+    "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "^1.2.1",
     "@radix-ui/react-alert-dialog": "^1.1.2",
     "@radix-ui/react-aspect-ratio": "^1.1.0",
@@ -71,21 +71,21 @@
     "framer-motion": "^12.23.3",
     "lucide-react": "^0.525.0",
     "react-day-picker": "^9.8.0",
-    "react-hook-form": "^7.48.2",
+    "react-hook-form": "^7.54.2",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
-    "zod": "^3.23.8"
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
     "@repo/tsconfig": "workspace:*",
-    "@types/node": "^20.10.0",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "autoprefixer": "^10.4.17",
-    "eslint": "^8.56.0",
-    "postcss": "^8.4.33",
-    "tailwindcss": "^4"
+    "@types/node": "^22.10.5",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.17.0",
+    "postcss": "^8.5.1",
+    "tailwindcss": "^4.0.1"
   },
   "peerDependencies": {
     "react": "^19.0.0"
