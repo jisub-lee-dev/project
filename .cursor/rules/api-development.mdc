@@ -1,0 +1,522 @@
+---
+alwaysApply: true
+---
+
+# API 개발 가이드
+
+## API Route 구조
+
+### 파일 구조
+```
+apps/web/src/app/api/
+├── auth/
+│   ├── login/
+│   │   └── route.ts
+│   └── logout/
+│       └── route.ts
+├── users/
+│   ├── route.ts          # GET /api/users, POST /api/users
+│   └── [id]/
+│       └── route.ts      # GET /api/users/[id], PUT /api/users/[id]
+└── health/
+    └── route.ts
+```
+
+### 기본 템플릿
+```typescript
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { db } from "@repo/db";
+
+// 요청 스키마 정의
+const createUserSchema = z.object({
+  name: z.string().min(1),
+  email: z.string().email(),
+});
+
+// GET 핸들러
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get("page") ?? "1");
+    const limit = parseInt(searchParams.get("limit") ?? "10");
+
+    const users = await db.user.findMany({
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return NextResponse.json({
+      data: users,
+      pagination: { page, limit },
+    });
+  } catch (error) {
+    console.error("GET /api/users error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+// POST 핸들러
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const validatedData = createUserSchema.parse(body);
+
+    const user = await db.user.create({
+      data: validatedData,
+    });
+
+    return NextResponse.json(user, { status: 201 });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Validation error", details: error.errors },
+        { status: 400 }
+      );
+    }
+
+    console.error("POST /api/users error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+```
+
+## 데이터 검증
+
+### Zod 스키마 사용
+```typescript
+import { z } from "zod";
+
+// 기본 스키마
+const userSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1).max(100),
+  email: z.string().email(),
+  age: z.number().int().min(0).max(150).optional(),
+  createdAt: z.date(),
+});
+
+// 부분 업데이트용 스키마
+const updateUserSchema = userSchema.partial().omit({ id: true, createdAt: true });
+
+// 쿼리 파라미터 스키마
+const getUsersQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(10),
+  search: z.string().optional(),
+});
+```
+
+### 검증 헬퍼 함수
+```typescript
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+
+export function validateRequestBody<T>(
+  schema: z.ZodSchema<T>,
+  body: unknown
+): { success: true; data: T } | { success: false; response: NextResponse } {
+  try {
+    const data = schema.parse(body);
+    return { success: true, data };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return {
+        success: false,
+        response: NextResponse.json(
+          { error: "Validation error", details: error.errors },
+          { status: 400 }
+        ),
+      };
+    }
+    throw error;
+  }
+}
+
+export function validateQueryParams<T>(
+  schema: z.ZodSchema<T>,
+  searchParams: URLSearchParams
+): { success: true; data: T } | { success: false; response: NextResponse } {
+  try {
+    const params = Object.fromEntries(searchParams.entries());
+    const data = schema.parse(params);
+    return { success: true, data };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return {
+        success: false,
+        response: NextResponse.json(
+          { error: "Invalid query parameters", details: error.errors },
+          { status: 400 }
+        ),
+      };
+    }
+    throw error;
+  }
+}
+```
+
+## 에러 처리
+
+### 표준 에러 응답
+```typescript
+export type ApiError = {
+  error: string;
+  message?: string;
+  details?: unknown;
+  code?: string;
+};
+
+export function createErrorResponse(
+  error: string,
+  status: number,
+  details?: unknown
+): NextResponse {
+  return NextResponse.json(
+    {
+      error,
+      details,
+      timestamp: new Date().toISOString(),
+    } satisfies ApiError,
+    { status }
+  );
+}
+
+// 사용 예시
+export async function GET() {
+  try {
+    // API 로직
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      return createErrorResponse("Resource not found", 404);
+    }
+    
+    if (error instanceof ValidationError) {
+      return createErrorResponse("Validation failed", 400, error.details);
+    }
+
+    console.error("Unexpected error:", error);
+    return createErrorResponse("Internal server error", 500);
+  }
+}
+```
+
+### 커스텀 에러 클래스
+```typescript
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public statusCode: number,
+    public code?: string
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+export class NotFoundError extends ApiError {
+  constructor(resource: string) {
+    super(`${resource} not found`, 404, "NOT_FOUND");
+  }
+}
+
+export class ValidationError extends ApiError {
+  constructor(details: unknown) {
+    super("Validation failed", 400, "VALIDATION_ERROR");
+    this.details = details;
+  }
+  
+  details: unknown;
+}
+```
+
+## 인증 및 권한
+
+### 미들웨어 패턴
+```typescript
+import { NextRequest } from "next/server";
+import { verify } from "jsonwebtoken";
+
+export async function withAuth<T extends NextRequest>(
+  request: T,
+  handler: (request: T & { user: User }) => Promise<NextResponse>
+): Promise<NextResponse> {
+  try {
+    const token = request.headers.get("authorization")?.replace("Bearer ", "");
+    
+    if (!token) {
+      return createErrorResponse("Authentication required", 401);
+    }
+
+    const payload = verify(token, process.env.JWT_SECRET!) as { userId: string };
+    const user = await db.user.findUnique({
+      where: { id: payload.userId },
+    });
+
+    if (!user) {
+      return createErrorResponse("Invalid token", 401);
+    }
+
+    return handler(Object.assign(request, { user }));
+  } catch (error) {
+    return createErrorResponse("Authentication failed", 401);
+  }
+}
+
+// 사용 예시
+export async function GET(request: NextRequest) {
+  return withAuth(request, async (authenticatedRequest) => {
+    const { user } = authenticatedRequest;
+    // 인증된 사용자로 로직 수행
+    return NextResponse.json({ user });
+  });
+}
+```
+
+### 권한 체크
+```typescript
+export function withRole(requiredRole: string) {
+  return function <T extends NextRequest & { user: User }>(
+    request: T,
+    handler: (request: T) => Promise<NextResponse>
+  ) {
+    if (request.user.role !== requiredRole) {
+      return createErrorResponse("Insufficient permissions", 403);
+    }
+    return handler(request);
+  };
+}
+```
+
+## 데이터베이스 작업
+
+### Prisma 사용 패턴
+```typescript
+import { db } from "@repo/db";
+import { Prisma } from "@prisma/client";
+
+// 트랜잭션 사용
+export async function createUserWithProfile(userData: CreateUserData) {
+  return db.$transaction(async (tx) => {
+    const user = await tx.user.create({
+      data: {
+        name: userData.name,
+        email: userData.email,
+      },
+    });
+
+    const profile = await tx.profile.create({
+      data: {
+        userId: user.id,
+        bio: userData.bio,
+      },
+    });
+
+    return { user, profile };
+  });
+}
+
+// 에러 처리
+export async function getUserById(id: string) {
+  try {
+    const user = await db.user.findUniqueOrThrow({
+      where: { id },
+      include: { profile: true },
+    });
+    return user;
+  } catch (error) {
+    if (error instanceof Prisma.NotFoundError) {
+      throw new NotFoundError("User");
+    }
+    throw error;
+  }
+}
+```
+
+## 응답 형식
+
+### 표준 응답 구조
+```typescript
+export type ApiResponse<T = unknown> = {
+  data?: T;
+  error?: string;
+  message?: string;
+  pagination?: {
+    page: number;
+    limit: number;
+    total?: number;
+    totalPages?: number;
+  };
+  meta?: Record<string, unknown>;
+};
+
+// 성공 응답 헬퍼
+export function createSuccessResponse<T>(
+  data: T,
+  message?: string,
+  meta?: Record<string, unknown>
+): NextResponse {
+  return NextResponse.json({
+    data,
+    message,
+    meta,
+  } satisfies ApiResponse<T>);
+}
+
+// 페이지네이션 응답
+export function createPaginatedResponse<T>(
+  data: T[],
+  pagination: { page: number; limit: number; total: number }
+): NextResponse {
+  return NextResponse.json({
+    data,
+    pagination: {
+      ...pagination,
+      totalPages: Math.ceil(pagination.total / pagination.limit),
+    },
+  } satisfies ApiResponse<T[]>);
+}
+```
+
+## 성능 최적화
+
+### 캐싱 전략
+```typescript
+import { NextRequest, NextResponse } from "next/server";
+
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const cacheKey = `users:${searchParams.toString()}`;
+
+  // 캐시 확인 (Redis 등)
+  const cached = await getFromCache(cacheKey);
+  if (cached) {
+    return NextResponse.json(cached, {
+      headers: {
+        "Cache-Control": "public, max-age=300", // 5분 캐시
+      },
+    });
+  }
+
+  const users = await db.user.findMany();
+  
+  // 캐시 저장
+  await setCache(cacheKey, users, 300);
+
+  return NextResponse.json(users, {
+    headers: {
+      "Cache-Control": "public, max-age=300",
+    },
+  });
+}
+```
+
+### 데이터베이스 최적화
+```typescript
+// 필요한 필드만 선택
+const users = await db.user.findMany({
+  select: {
+    id: true,
+    name: true,
+    email: true,
+    // password 제외
+  },
+});
+
+// 관계 데이터 효율적 로딩
+const usersWithPosts = await db.user.findMany({
+  include: {
+    posts: {
+      take: 5, // 최근 5개만
+      orderBy: { createdAt: "desc" },
+    },
+  },
+});
+```
+
+## 테스트
+
+### API 테스트 예시
+```typescript
+import { createMocks } from "node-mocks-http";
+import { GET, POST } from "./route";
+
+describe("/api/users", () => {
+  it("should return users list", async () => {
+    const { req } = createMocks({
+      method: "GET",
+      url: "/api/users?page=1&limit=10",
+    });
+
+    const response = await GET(req as any);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.data).toBeInstanceOf(Array);
+  });
+
+  it("should create a new user", async () => {
+    const { req } = createMocks({
+      method: "POST",
+      body: {
+        name: "Test User",
+        email: "test@example.com",
+      },
+    });
+
+    const response = await POST(req as any);
+    const data = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(data.name).toBe("Test User");
+  });
+});
+```
+
+## 보안 고려사항
+
+### 입력 검증
+- 모든 입력 데이터 검증
+- SQL 인젝션 방지 (Prisma 사용)
+- XSS 방지를 위한 출력 이스케이프
+
+### 레이트 리미팅
+```typescript
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+
+const ratelimit = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(10, "10 s"),
+});
+
+export async function POST(request: NextRequest) {
+  const ip = request.ip ?? "127.0.0.1";
+  const { success } = await ratelimit.limit(ip);
+
+  if (!success) {
+    return createErrorResponse("Too many requests", 429);
+  }
+
+  // API 로직 계속
+}
+```
+
+### CORS 설정
+```typescript
+export async function GET(request: NextRequest) {
+  const response = NextResponse.json(data);
+  
+  response.headers.set("Access-Control-Allow-Origin", "*");
+  response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
+  response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  
+  return response;
+}
+```

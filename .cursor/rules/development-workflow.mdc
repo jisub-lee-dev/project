@@ -1,0 +1,142 @@
+---
+alwaysApply: true
+---
+
+# 개발 워크플로우 가이드
+
+## 개발 환경 설정
+
+### 초기 설정 순서
+1. `pnpm setup` - 전체 환경 설정
+2. 환경 변수 파일 확인 및 설정
+3. `pnpm dev` - 개발 서버 시작
+4. `pnpm db:studio` - 데이터베이스 확인
+
+### 일일 개발 루틴
+1. `git pull origin main` - 최신 코드 동기화
+2. `pnpm install` - 의존성 업데이트 확인
+3. `pnpm dev` - 개발 서버 시작
+4. 개발 작업 수행
+5. `pnpm check-all` - 코드 품질 검사
+6. `pnpm fix-all` - 자동 수정 적용
+
+## 브랜치 전략
+
+### 브랜치 네이밍
+- `feature/기능명` - 새로운 기능 개발
+- `fix/버그명` - 버그 수정
+- `refactor/리팩토링명` - 코드 리팩토링
+- `docs/문서명` - 문서 업데이트
+- `chore/작업명` - 빌드, 설정 등 기타 작업
+
+### 커밋 메시지 규칙
+```
+type(scope): subject
+
+body (선택사항)
+
+footer (선택사항)
+```
+
+**타입:**
+- `feat`: 새로운 기능
+- `fix`: 버그 수정
+- `docs`: 문서 변경
+- `style`: 코드 포맷팅
+- `refactor`: 코드 리팩토링
+- `test`: 테스트 추가/수정
+- `chore`: 빌드 프로세스, 도구 설정
+
+**예시:**
+```
+feat(ui): add Button component with variants
+fix(db): resolve connection timeout issue
+docs(readme): update installation instructions
+```
+
+## 패키지 개발 가이드
+
+### 새 패키지 생성
+1. `packages/` 디렉토리에 폴더 생성
+2. `package.json` 설정 (`@repo/패키지명`)
+3. `tsconfig.json` 상속 설정
+4. `index.ts` export 파일 생성
+5. `pnpm-workspace.yaml`에 추가 (자동 감지)
+
+### UI 컴포넌트 개발
+- Radix UI 기반으로 구현
+- Tailwind CSS 스타일링
+- TypeScript 타입 정의
+- Storybook 문서화 (선택사항)
+
+### 유틸리티 함수 개발
+- 순수 함수로 구현
+- JSDoc 주석 작성
+- 단위 테스트 필수
+- Tree-shaking 고려한 export
+
+## 데이터베이스 작업
+
+### 스키마 변경 프로세스
+1. `packages/db/prisma/schema.prisma` 수정
+2. `pnpm db:generate` - 클라이언트 재생성
+3. `pnpm db:push` - 개발 DB 스키마 적용
+4. 프로덕션 배포 시 `pnpm db:migrate` 사용
+
+### 데이터 검증
+- Zod 스키마를 `packages/validation`에 정의
+- Prisma 모델과 Zod 스키마 일관성 유지
+- API 엔드포인트에서 검증 스키마 사용
+
+## 테스트 전략
+
+### 테스트 레벨
+- **Unit Tests**: 유틸리티 함수, 훅
+- **Component Tests**: UI 컴포넌트
+- **Integration Tests**: API 엔드포인트
+- **E2E Tests**: 주요 사용자 플로우
+
+### 테스트 실행
+- `pnpm test` - 모든 테스트 실행
+- `pnpm test:watch` - 감시 모드
+- `pnpm --filter 패키지명 test` - 특정 패키지 테스트
+
+## 성능 모니터링
+
+### 빌드 성능
+- Turborepo 캐시 활용
+- 불필요한 의존성 제거
+- 번들 크기 모니터링
+
+### 런타임 성능
+- React DevTools Profiler 사용
+- Core Web Vitals 측정
+- 이미지 최적화 확인
+
+## 배포 준비
+
+### 프로덕션 빌드 체크리스트
+- [ ] `pnpm build` 성공
+- [ ] `pnpm check-all` 통과
+- [ ] 환경 변수 설정 확인
+- [ ] 데이터베이스 마이그레이션 준비
+- [ ] 성능 테스트 완료
+
+### 환경별 설정
+- **Development**: `.env.local`
+- **Staging**: `.env.staging`
+- **Production**: `.env.production`
+
+## 문제 해결
+
+### 일반적인 문제
+1. **의존성 충돌**: `pnpm reset` 후 재설치
+2. **타입 에러**: `pnpm db:generate` 실행
+3. **빌드 실패**: 캐시 클리어 후 재빌드
+4. **포트 충돌**: 다른 포트 사용 또는 프로세스 종료
+
+### 디버깅 도구
+- React DevTools
+- Next.js DevTools
+- Prisma Studio
+- Browser DevTools
