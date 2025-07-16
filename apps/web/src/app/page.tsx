@@ -1,123 +1,88 @@
-import Image from "next/image";
-import { Button } from "@repo/ui";
-import { formatDate, generateId } from "@repo/utils";
+import { Button } from "@repo/ui/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@repo/ui/components/ui/card";
 
-export default function Home() {
-  const currentDate = formatDate(new Date(), "yyyy년 MM월 dd일");
-  const uniqueId = generateId();
-
+export default function HomePage() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        
-        {/* 프로젝트 정보 섹션 */}
-        <div className="text-center sm:text-left">
-          <h1 className="text-2xl font-bold mb-4">Turborepo + Next.js + shadcn/ui</h1>
-          <p className="text-muted-foreground mb-4">
-            이 프로젝트는 2025년 최신 프론트엔드 스택을 사용한 모노레포입니다.
+    <main className="container mx-auto px-4 py-16">
+      <div className="flex min-h-[80vh] flex-col items-center justify-center text-center">
+        <div className="max-w-3xl space-y-6">
+          <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
+            Modern Full-Stack
+            <span className="text-primary"> Monorepo</span>
+          </h1>
+
+          <p className="text-muted-foreground text-xl">
+            Next.js 15, React 19, TypeScript, Tailwind CSS v4로 구축된
+            <br />
+            현대적인 웹 개발 보일러플레이트
           </p>
-          <div className="space-y-2 text-sm">
-            <p>📅 오늘 날짜: {currentDate}</p>
-            <p>🆔 생성된 ID: {uniqueId.slice(0, 8)}...</p>
+
+          <div className="flex flex-col justify-center gap-4 sm:flex-row">
+            <Button size="lg" className="px-8 text-lg">
+              시작하기
+            </Button>
+            <Button variant="outline" size="lg" className="px-8 text-lg">
+              문서 보기
+            </Button>
           </div>
         </div>
 
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+        <div className="mt-16 grid w-full max-w-4xl grid-cols-1 gap-6 md:grid-cols-3">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                🚀 고성능
+              </CardTitle>
+              <CardDescription>
+                Turborepo와 PNPM으로 최적화된 빌드 시스템
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground text-sm">
+                캐싱과 병렬 처리로 빠른 개발 경험을 제공합니다.
+              </p>
+            </CardContent>
+          </Card>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <Button asChild>
-            <a
-              href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Image
-                className="dark:invert"
-                src="/vercel.svg"
-                alt="Vercel logomark"
-                width={20}
-                height={20}
-              />
-              Deploy now
-            </a>
-          </Button>
-          <Button variant="outline" asChild>
-            <a
-              href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Read our docs
-            </a>
-          </Button>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                🛠️ 현대적 스택
+              </CardTitle>
+              <CardDescription>
+                최신 기술 스택으로 구성된 개발 환경
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground text-sm">
+                Next.js 15, React 19, TypeScript, Tailwind CSS v4를 사용합니다.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                📦 모노레포
+              </CardTitle>
+              <CardDescription>
+                체계적인 패키지 관리와 코드 공유
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground text-sm">
+                UI, DB, Utils, Validation 패키지로 구조화되어 있습니다.
+              </p>
+            </CardContent>
+          </Card>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      </div>
+    </main>
   );
 }

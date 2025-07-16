@@ -1,7 +1,0 @@
-{
-  "extends": ["@repo/eslint-config/react-internal.js"],
-  "rules": {
-    "react/prop-types": "off"
-  },
-  "ignorePatterns": ["scripts/**/*"]
-} 

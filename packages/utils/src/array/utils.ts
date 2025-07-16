@@ -5,4 +5,4 @@ export const chunk = <T>(array: T[], size: number): T[][] => {
     chunks.push(array.slice(i, i + size));
   }
   return chunks;
-}; 
+};

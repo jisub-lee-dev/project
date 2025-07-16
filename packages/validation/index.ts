@@ -1,2 +1,2 @@
-// packages/validation/src/index.ts
-export * from './src/index' 
+// packages/validation/index.ts
+export * from "./src/index";

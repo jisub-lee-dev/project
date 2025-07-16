@@ -1,2 +1,2 @@
 // packages/utils/src/array/index.ts
-export * from './utils' 
+export * from "./utils";

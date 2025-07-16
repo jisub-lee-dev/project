@@ -2,24 +2,40 @@
   "name": "@repo/ui",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
+  "description": "Shared UI components and design system",
   "main": "./index.ts",
   "types": "./index.ts",
   "exports": {
-    ".": "./index.ts",
-    "./components/*": "./src/components/*",
-    "./lib/*": "./src/lib/*"
+    ".": {
+      "types": "./index.ts",
+      "import": "./index.ts",
+      "default": "./index.ts"
+    },
+    "./components/*": {
+      "types": "./src/components/*.ts",
+      "import": "./src/components/*",
+      "default": "./src/components/*"
+    },
+    "./lib/*": {
+      "types": "./src/lib/*.ts",
+      "import": "./src/lib/*",
+      "default": "./src/lib/*"
+    }
   },
   "files": [
     "src"
   ],
   "scripts": {
+    "build": "tsc --build",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
     "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix",
     "type-check": "tsc --noEmit",
     "fix-imports": "node scripts/fix-imports.js"
   },
   "dependencies": {
-    "@hookform/resolvers": "^3.10.0",
+    "@hookform/resolvers": "^3.3.2",
     "@repo/validation": "workspace:*",
     "@radix-ui/react-accordion": "^1.1.2",
     "@radix-ui/react-alert-dialog": "^1.0.5",
@@ -49,16 +65,16 @@
     "@radix-ui/react-toggle": "^1.0.3",
     "@radix-ui/react-toggle-group": "^1.0.4",
     "@radix-ui/react-tooltip": "^1.0.7",
-    "class-variance-authority": "^0.7.0",
-    "clsx": "^2.0.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
-    "framer-motion": "^11.0.0",
-    "lucide-react": "^0.294.0",
+    "framer-motion": "^12.23.3",
+    "lucide-react": "^0.525.0",
     "react-day-picker": "^9.8.0",
-    "react-hook-form": "^7.60.0",
-    "tailwind-merge": "^2.2.0",
+    "react-hook-form": "^7.48.2",
+    "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
-    "zod": "^3.25.76"
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
@@ -69,7 +85,7 @@
     "autoprefixer": "^10.4.17",
     "eslint": "^8.56.0",
     "postcss": "^8.4.33",
-    "tailwindcss": "^3.4.1"
+    "tailwindcss": "^4"
   },
   "peerDependencies": {
     "react": "^19.0.0"

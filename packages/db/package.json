@@ -2,13 +2,27 @@
   "name": "@repo/db",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
+  "description": "Database client and schema definitions",
   "main": "./index.ts",
   "types": "./index.ts",
   "exports": {
-    ".": "./index.ts"
+    ".": {
+      "types": "./index.ts",
+      "import": "./index.ts",
+      "default": "./index.ts"
+    },
+    "./client": {
+      "types": "./src/client.ts",
+      "import": "./src/client.ts",
+      "default": "./src/client.ts"
+    }
   },
   "scripts": {
+    "build": "tsc --build",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix",
     "type-check": "tsc --noEmit",
     "db:generate": "prisma generate",
     "db:push": "prisma db push --skip-generate",
@@ -20,7 +34,11 @@
     "@repo/validation": "workspace:*"
   },
   "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/tsconfig": "workspace:*",
     "@types/node": "^20.11.24",
-    "prisma": "^5.0.0"
+    "eslint": "^8.56.0",
+    "prisma": "^5.0.0",
+    "typescript": "5.3.3"
   }
 }

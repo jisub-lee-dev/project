@@ -1,2 +1,2 @@
 // packages/ui/index.ts
-export * from './src/index' 
+export * from "./src/index";

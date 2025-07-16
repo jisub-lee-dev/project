@@ -2,10 +2,12 @@
   "extends": "@repo/tsconfig/react-library.json",
   "compilerOptions": {
     "baseUrl": ".",
+    "outDir": "./dist",
+    "rootDir": ".",
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "index.ts"],
   "exclude": ["node_modules", "dist"]
-} 
+}

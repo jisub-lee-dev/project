@@ -20,4 +20,4 @@
     "strictNullChecks": true
   },
   "exclude": ["node_modules"]
-} 
+}

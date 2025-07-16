@@ -1,2 +1,2 @@
 // packages/utils/src/object/index.ts
-export * from './utils' 
+export * from "./utils";

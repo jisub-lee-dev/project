@@ -1,7 +1,11 @@
 import Cookies from "js-cookie";
 
 // 쿠키 관련 유틸리티
-export const setCookie = (name: string, value: string, options?: Cookies.CookieAttributes) => {
+export const setCookie = (
+  name: string,
+  value: string,
+  options?: Cookies.CookieAttributes
+) => {
   Cookies.set(name, value, options);
 };
 
@@ -11,4 +15,4 @@ export const getCookie = (name: string) => {
 
 export const removeCookie = (name: string) => {
   Cookies.remove(name);
-}; 
+};
