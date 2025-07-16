@@ -3,9 +3,23 @@
   "display": "React Library",
   "extends": "./base.json",
   "compilerOptions": {
-    "lib": ["ES2015", "DOM"],
+    "lib": ["ES2015", "DOM", "DOM.Iterable"],
     "module": "ESNext",
-    "target": "es6",
-    "jsx": "react-jsx"
-  }
+    "target": "ES2015",
+    "jsx": "react-jsx",
+    "declaration": true,
+    "declarationMap": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "inlineSources": false,
+    "isolatedModules": true,
+    "moduleResolution": "bundler",
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "preserveWatchOutput": true,
+    "skipLibCheck": true,
+    "strict": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.test.*", "**/*.spec.*"]
 }

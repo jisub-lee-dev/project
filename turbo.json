@@ -7,38 +7,42 @@
       "cache": false
     },
     "db:generate": {
-      "cache": false
+      "cache": false,
+      "inputs": ["prisma/schema.prisma", ".env"]
     },
     "db:push": {
-      "cache": false
+      "cache": false,
+      "dependsOn": ["db:generate"]
     },
     "db:studio": {
       "cache": false,
       "persistent": true
     },
     "db:migrate": {
-      "cache": false
+      "cache": false,
+      "dependsOn": ["db:generate"]
     },
     "build": {
-      "dependsOn": ["^generate", "^build"],
+      "dependsOn": ["^build", "db:generate"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**", "build/**"],
-      "env": ["NODE_ENV", "NEXT_PUBLIC_*"]
+      "env": ["NODE_ENV", "NEXT_PUBLIC_*", "DATABASE_URL"]
     },
     "lint": {
-      "dependsOn": ["^lint"],
+      "dependsOn": ["^build"],
       "outputs": []
     },
     "lint:fix": {
-      "dependsOn": ["^lint:fix"],
+      "dependsOn": ["^build"],
       "cache": false
     },
     "type-check": {
-      "dependsOn": ["^type-check"],
-      "outputs": ["*.tsbuildinfo"]
+      "dependsOn": ["^build"],
+      "outputs": []
     },
     "test": {
-      "dependsOn": ["^test"],
-      "outputs": ["coverage/**"]
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"],
+      "inputs": ["src/**/*.{ts,tsx,js,jsx}", "**/*.test.{ts,tsx,js,jsx}"]
     },
     "test:watch": {
       "cache": false,
@@ -46,7 +50,8 @@
     },
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "dependsOn": ["db:generate"]
     },
     "clean": {
       "cache": false

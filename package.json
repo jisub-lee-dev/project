@@ -16,11 +16,18 @@
     "db:studio": "turbo run db:studio",
     "db:migrate": "turbo run db:migrate",
     "setup": "bash scripts/setup.sh",
+    "health-check": "bash scripts/health-check.sh",
     "check-all": "pnpm lint && pnpm type-check && pnpm format:check",
     "fix-all": "pnpm lint:fix && pnpm format",
     "reset": "turbo run clean && rm -rf node_modules && pnpm install",
     "test": "turbo run test",
-    "test:watch": "turbo run test:watch"
+    "test:watch": "turbo run test:watch",
+    "docker:build": "docker build -t project .",
+    "docker:run": "docker run -p 3000:3000 project",
+    "docker:dev": "docker-compose up -d postgres",
+    "docker:down": "docker-compose down",
+    "update-deps": "pnpm update --recursive",
+    "precommit": "pnpm check-all"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.1.4",
@@ -33,10 +40,10 @@
     "eslint": "^8.56.0",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
-    "prettier": "^3.0.0",
-    "prettier-plugin-tailwindcss": "^0.5.0",
-    "turbo": "latest",
-    "typescript": "5.3.3"
+    "prettier": "^3.3.0",
+    "prettier-plugin-tailwindcss": "^0.6.0",
+    "turbo": "^2.5.4",
+    "typescript": "^5.6.0"
   },
   "packageManager": "pnpm@10.12.4",
   "pnpm": {
@@ -51,15 +58,5 @@
       "sharp",
       "unrs-resolver"
     ]
-  },
-  "dependencies": {
-    "@eslint/eslintrc": "^3.3.1",
-    "@eslint/js": "^8.56.0",
-    "@typescript-eslint/eslint-plugin": "^6.21.0",
-    "@typescript-eslint/parser": "^6.21.0",
-    "eslint-plugin-import": "^2.32.0",
-    "eslint-plugin-react": "7.33.2",
-    "eslint-plugin-react-hooks": "^4.6.2",
-    "eslint-plugin-turbo": "^2.5.4"
   }
 }

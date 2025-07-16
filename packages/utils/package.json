@@ -12,10 +12,20 @@
       "import": "./index.ts",
       "default": "./index.ts"
     },
-    "./lib/*": {
-      "types": "./src/lib/*.ts",
-      "import": "./src/lib/*",
-      "default": "./src/lib/*"
+    "./env": {
+      "types": "./src/env.ts",
+      "import": "./src/env.ts",
+      "default": "./src/env.ts"
+    },
+    "./date": {
+      "types": "./src/date.ts",
+      "import": "./src/date.ts",
+      "default": "./src/date.ts"
+    },
+    "./string": {
+      "types": "./src/string.ts",
+      "import": "./src/string.ts",
+      "default": "./src/string.ts"
     }
   },
   "scripts": {
@@ -36,7 +46,8 @@
     "query-string": "^8.1.0",
     "url-parse": "^1.5.10",
     "uuid": "^9.0.1",
-    "validator": "^13.11.0"
+    "validator": "^13.11.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",

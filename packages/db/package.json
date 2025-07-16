@@ -30,7 +30,7 @@
     "db:migrate": "prisma migrate dev"
   },
   "dependencies": {
-    "@prisma/client": "^5.0.0",
+    "@prisma/client": "^5.22.0",
     "@repo/validation": "workspace:*"
   },
   "devDependencies": {
@@ -38,7 +38,7 @@
     "@repo/tsconfig": "workspace:*",
     "@types/node": "^20.11.24",
     "eslint": "^8.56.0",
-    "prisma": "^5.0.0",
-    "typescript": "5.3.3"
+    "prisma": "^5.22.0",
+    "typescript": "^5.6.0"
   }
 }

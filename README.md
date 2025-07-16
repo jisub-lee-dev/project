@@ -1,11 +1,12 @@
-# 🚀 Modern Full-Stack Monorepo Boilerplate
+# 🚀 Modern Full-Stack Monorepo
 
 [![CI](https://github.com/your-username/project/workflows/CI/badge.svg)](https://github.com/your-username/project/actions)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat&logo=next.js&logoColor=white)](https://nextjs.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![Turborepo](https://img.shields.io/badge/Turborepo-EF4444?style=flat&logo=turborepo&logoColor=white)](https://turbo.build/)
 
-현대적인 웹 개발을 위한 완전한 모노레포 보일러플레이트입니다. Turborepo, Next.js 15, React 19, TypeScript, Tailwind CSS v4를 기반으로 구축되었습니다.
+**프로덕션 준비 완료된** 현대적인 풀스택 모노레포입니다. 최신 기술 스택과 최적화된 개발 경험을 제공합니다.
 
 ## ✨ 주요 특징
 

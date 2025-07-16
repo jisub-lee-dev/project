@@ -2,6 +2,7 @@
 node_modules/
 .pnp
 .pnp.js
+jspm_packages/
 
 # Production builds
 .next/
@@ -32,25 +33,17 @@ pids
 # Coverage directory used by tools like istanbul
 coverage/
 *.lcov
-
-# nyc test coverage
 .nyc_output
-
-# Dependency directories
-node_modules/
-jspm_packages/
 
 # TypeScript cache
 *.tsbuildinfo
 .tsbuildinfo
 
-# Optional npm cache directory
+# Cache directories
 .npm
-
-# Optional eslint cache
 .eslintcache
-
-# Microbundle cache
+.cache
+.parcel-cache
 .rpt2_cache/
 .rts2_cache_cjs/
 .rts2_cache_es/
@@ -65,27 +58,15 @@ jspm_packages/
 # Yarn Integrity file
 .yarn-integrity
 
-# parcel-bundler cache (https://parceljs.org/)
-.cache
-.parcel-cache
-
-# Next.js build output
-.next
-
-# Nuxt.js build / generate output
-.nuxt
-dist
+# Temporary folders
+tmp/
+temp/
 
 # Storybook build outputs
 .out
 .storybook-out
 
-# Temporary folders
-tmp/
-temp/
-
 # Editor directories and files
-.vscode/
 .idea/
 *.swp
 *.swo

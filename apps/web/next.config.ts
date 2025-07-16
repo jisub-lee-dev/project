@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
   transpilePackages: ["@repo/ui", "@repo/utils", "@repo/validation"],
   poweredByHeader: false,
   compress: true,
+  output: "standalone",
   images: {
     formats: ["image/webp", "image/avif"],
   },

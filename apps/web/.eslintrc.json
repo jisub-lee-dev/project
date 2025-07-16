@@ -1,6 +1,7 @@
 {
   "extends": ["next/core-web-vitals"],
-  "rules": {
-    "react/no-unescaped-entities": "off"
-  }
+  "parserOptions": {
+    "project": "./tsconfig.json"
+  },
+  "ignorePatterns": ["node_modules/", ".next/", ".turbo/", "dist/"]
 }

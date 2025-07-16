@@ -1,0 +1,32 @@
+{
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "typescript.suggest.autoImports": true,
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": null,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "explicit"
+  },
+  "emmet.includeLanguages": {
+    "javascript": "javascriptreact",
+    "typescript": "typescriptreact"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": null
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": null
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": null
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": null
+  },
+  "[json]": {
+    "editor.defaultFormatter": null
+  },
+  "[markdown]": {
+    "editor.defaultFormatter": null
+  }
+}
