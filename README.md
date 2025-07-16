@@ -112,6 +112,36 @@ pnpm db:studio        # Prisma Studio 실행
 pnpm db:migrate       # 마이그레이션 실행
 ```
 
+### 🎨 **UI 컴포넌트 (shadcn/ui)**
+
+```bash
+# shadcn 컴포넌트 추가 (packages/ui 디렉토리에서)
+cd packages/ui
+pnpm dlx shadcn@latest add [컴포넌트명]
+
+# 또는 루트에서 경로 지정
+pnpm dlx shadcn@latest add [컴포넌트명] --cwd packages/ui
+
+# 여러 컴포넌트 한번에 추가
+pnpm dlx shadcn@latest add accordion alert-dialog avatar dialog dropdown-menu separator tabs toast tooltip --cwd packages/ui
+
+# 컴포넌트 추가 후 packages/ui/src/index.ts에 export 추가 필요
+```
+
+### 🎬 **애니메이션 (Framer Motion)**
+
+```bash
+# 페이지 레벨 애니메이션 (apps/web)
+pnpm --filter web add framer-motion@latest
+
+# 컴포넌트 레벨 애니메이션 (packages/ui)
+pnpm --filter @repo/ui add framer-motion@latest
+
+# 사용 예시
+# apps/web/src/app/page.tsx - 페이지 전환, 레이아웃 애니메이션
+# packages/ui/src/components - 컴포넌트 내부 애니메이션
+```
+
 ### 🧽 **정리**
 
 ```bash

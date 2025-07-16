@@ -151,9 +151,6 @@ pnpm lint
 # 린팅 자동 수정
 pnpm lint:fix
 
-# 임포트 경로 수정
-pnpm fix-imports
-```
 
 ### 새 컴포넌트 추가
 
@@ -162,6 +159,7 @@ pnpm fix-imports
 3. **스타일 적용**: CVA를 사용한 변형 정의
 4. **Export 추가**: `src/components/ui/index.ts` 에 export 추가
 5. **문서화**: JSDoc 주석 추가
+
 
 ### 컴포넌트 구조 예시
 
@@ -212,6 +210,42 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 Button.displayName = "Button";
 
 export { Button, buttonVariants };
+```
+
+## 🎬 애니메이션 (Framer Motion)
+
+### 기본 사용법
+
+```tsx
+import { motion } from "framer-motion";
+import { Button } from "@repo/ui";
+
+// 컴포넌트 애니메이션
+<motion.div
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.3 }}
+>
+  <Button>애니메이션 버튼</Button>
+</motion.div>
+
+// 호버 애니메이션
+<motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+  <Button>인터랙티브 버튼</Button>
+</motion.div>
+```
+
+### shadcn 컴포넌트 추가
+
+```bash
+# 새 컴포넌트 추가
+pnpm dlx shadcn@latest add [컴포넌트명] --cwd packages/ui
+
+# 예시: Dialog 컴포넌트 추가
+pnpm dlx shadcn@latest add dialog --cwd packages/ui
+
+# 추가 후 packages/ui/src/index.ts에 export 추가 필요:
+# export * from "./components/ui/dialog";
 ```
 
 ## 🎯 베스트 프랙티스
