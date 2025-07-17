@@ -14,65 +14,59 @@ fileMatchPattern: "packages/db/**/*"
 - 인덱스 적절히 활용
 - 데이터 무결성 보장
 
-### 모델 정의 템플릿
+### 현재 프로젝트 스키마 구조
 
 ```prisma
+// 현재 구현된 실제 스키마
 model User {
-  // 기본 필드
+  id        String    @id @default(cuid())
+  email     String    @unique
+  name      String?
+  image     String?
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("users")
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  price       Decimal  @db.Decimal(10, 2)
+  category    String?
+  inStock     Boolean  @default(true)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("products")
+}
+```
+
+### 새 모델 추가 시 템플릿
+
+```prisma
+model NewModel {
+  // 기본 필드 (필수)
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // 비즈니스 필드
-  email     String   @unique
   name      String
-  avatar    String?
   isActive  Boolean  @default(true)
 
-  // 관계
-  posts     Post[]
-  profile   Profile?
+  // 관계 (필요시)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // 인덱스
-  @@index([email])
+  // 인덱스 (성능 최적화)
+  @@index([userId])
   @@index([createdAt])
-  @@map("users")
-}
-
-model Profile {
-  id     String  @id @default(cuid())
-  bio    String?
-  userId String  @unique
-  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("profiles")
-}
-
-model Post {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  title     String
-  content   String   @db.Text
-  published Boolean  @default(false)
-
-  authorId  String
-  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-
-  tags      Tag[]
-
-  @@index([authorId])
-  @@index([published, createdAt])
-  @@map("posts")
-}
-
-model Tag {
-  id    String @id @default(cuid())
-  name  String @unique
-  posts Post[]
-
-  @@map("tags")
+  @@map("new_models")
 }
 ```
 
@@ -271,25 +265,29 @@ CREATE INDEX "users_createdAt_idx" ON "users"("createdAt");
 ### 효율적인 데이터 로딩
 
 ```typescript
-// 필요한 필드만 선택
-const users = await db.user.findMany({
+// 필요한 필드만 선택 (현재 스키마에 맞게)
+const users = await prisma.user.findMany({
   select: {
     id: true,
     name: true,
     email: true,
-    // password 제외
+    image: true,
+    createdAt: true,
+    // 민감한 정보 제외
   },
 });
 
-// 관계 데이터 포함
-const usersWithPosts = await db.user.findMany({
+// 관계 데이터 포함 (현재 User-Product 관계)
+const usersWithProducts = await prisma.user.findMany({
   include: {
-    posts: {
+    products: {
+      where: { inStock: true },
       take: 5,
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
-        title: true,
+        name: true,
+        price: true,
         createdAt: true,
       },
     },
@@ -297,11 +295,15 @@ const usersWithPosts = await db.user.findMany({
 });
 
 // 조건부 포함
-const userWithConditionalData = await db.user.findUnique({
+const userWithConditionalData = await prisma.user.findUnique({
   where: { id },
   include: {
-    posts: includesPosts,
-    profile: includesProfile,
+    products: includeProducts
+      ? {
+          where: { inStock: true },
+          orderBy: { createdAt: "desc" },
+        }
+      : false,
   },
 });
 ```
@@ -309,15 +311,18 @@ const userWithConditionalData = await db.user.findUnique({
 ### 페이지네이션
 
 ```typescript
-// 오프셋 기반 페이지네이션
+// 오프셋 기반 페이지네이션 (현재 스키마에 맞게)
 async function getUsersPaginated(page: number, limit: number) {
   const [users, total] = await Promise.all([
-    db.user.findMany({
+    prisma.user.findMany({
       skip: (page - 1) * limit,
       take: limit,
       orderBy: { createdAt: "desc" },
+      include: {
+        _count: { products: true },
+      },
     }),
-    db.user.count(),
+    prisma.user.count(),
   ]);
 
   return {
@@ -333,10 +338,13 @@ async function getUsersPaginated(page: number, limit: number) {
 
 // 커서 기반 페이지네이션 (더 효율적)
 async function getUsersCursor(cursor?: string, limit: number = 10) {
-  const users = await db.user.findMany({
+  const users = await prisma.user.findMany({
     take: limit + 1, // 다음 페이지 존재 여부 확인용
     cursor: cursor ? { id: cursor } : undefined,
     orderBy: { createdAt: "desc" },
+    include: {
+      _count: { products: true },
+    },
   });
 
   const hasNextPage = users.length > limit;
@@ -347,26 +355,78 @@ async function getUsersCursor(cursor?: string, limit: number = 10) {
     nextCursor: hasNextPage ? data[data.length - 1].id : null,
   };
 }
+
+// Product 페이지네이션 예시
+async function getProductsPaginated(
+  page: number,
+  limit: number,
+  filters?: { category?: string; inStock?: boolean }
+) {
+  const where = {
+    ...(filters?.category && { category: filters.category }),
+    ...(filters?.inStock !== undefined && { inStock: filters.inStock }),
+  };
+
+  const [products, total] = await Promise.all([
+    prisma.product.findMany({
+      where,
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: { createdAt: "desc" },
+      include: {
+        user: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+    }),
+    prisma.product.count({ where }),
+  ]);
+
+  return {
+    products,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+}
 ```
 
 ### 집계 쿼리
 
 ```typescript
-// 기본 집계
-const stats = await db.user.aggregate({
+// 기본 집계 (현재 스키마에 맞게)
+const userStats = await prisma.user.aggregate({
   _count: { id: true },
-  _avg: { age: true },
-  _sum: { points: true },
-  where: { isActive: true },
+  where: { name: { not: null } },
 });
 
-// 그룹별 집계
-const postsByAuthor = await db.post.groupBy({
-  by: ["authorId"],
+const productStats = await prisma.product.aggregate({
   _count: { id: true },
+  _avg: { price: true },
+  _sum: { price: true },
+  _min: { price: true },
+  _max: { price: true },
+  where: { inStock: true },
+});
+
+// 그룹별 집계 (현재 스키마에 맞게)
+const productsByUser = await prisma.product.groupBy({
+  by: ["userId"],
+  _count: { id: true },
+  _avg: { price: true },
   having: {
-    id: { _count: { gt: 5 } }, // 5개 이상 포스트를 가진 작성자만
+    id: { _count: { gt: 2 } }, // 2개 이상 제품을 가진 사용자만
   },
+});
+
+const productsByCategory = await prisma.product.groupBy({
+  by: ["category"],
+  _count: { id: true },
+  _avg: { price: true },
+  where: { inStock: true },
 });
 ```
 
@@ -375,37 +435,56 @@ const postsByAuthor = await db.post.groupBy({
 ### 기본 트랜잭션
 
 ```typescript
-async function transferPoints(
-  fromUserId: string,
-  toUserId: string,
-  amount: number
+// 현재 스키마에 맞는 트랜잭션 예시
+async function createUserWithProducts(
+  userData: { email: string; name?: string },
+  productData: Array<{ name: string; price: number; description?: string }>
 ) {
-  return await db.$transaction(async tx => {
-    // 송신자 포인트 차감
-    const fromUser = await tx.user.update({
-      where: { id: fromUserId },
-      data: { points: { decrement: amount } },
-    });
-
-    if (fromUser.points < 0) {
-      throw new Error("Insufficient points");
-    }
-
-    // 수신자 포인트 증가
-    await tx.user.update({
-      where: { id: toUserId },
-      data: { points: { increment: amount } },
-    });
-
-    // 거래 기록 생성
-    await tx.transaction.create({
+  return await prisma.$transaction(async tx => {
+    // 사용자 생성
+    const user = await tx.user.create({
       data: {
-        fromUserId,
-        toUserId,
-        amount,
-        type: "TRANSFER",
+        email: userData.email,
+        name: userData.name,
       },
     });
+
+    // 사용자의 초기 제품들 생성
+    const products = await Promise.all(
+      productData.map(product =>
+        tx.product.create({
+          data: {
+            ...product,
+            userId: user.id,
+          },
+        })
+      )
+    );
+
+    return { user, products };
+  });
+}
+
+// 제품 이전 트랜잭션 예시
+async function transferProduct(productId: string, newUserId: string) {
+  return await prisma.$transaction(async tx => {
+    // 제품 존재 확인
+    const product = await tx.product.findUniqueOrThrow({
+      where: { id: productId },
+    });
+
+    // 새 사용자 존재 확인
+    const newUser = await tx.user.findUniqueOrThrow({
+      where: { id: newUserId },
+    });
+
+    // 제품 소유자 변경
+    const updatedProduct = await tx.product.update({
+      where: { id: productId },
+      data: { userId: newUserId },
+    });
+
+    return { product: updatedProduct, newOwner: newUser };
   });
 }
 ```
@@ -413,10 +492,13 @@ async function transferPoints(
 ### 배치 작업
 
 ```typescript
-async function createMultipleUsers(userData: CreateUserData[]) {
-  return await db.$transaction(
+// 현재 스키마에 맞는 배치 작업
+async function createMultipleUsers(
+  userData: Array<{ email: string; name?: string }>
+) {
+  return await prisma.$transaction(
     userData.map(data =>
-      db.user.create({
+      prisma.user.create({
         data,
       })
     )
@@ -424,10 +506,31 @@ async function createMultipleUsers(userData: CreateUserData[]) {
 }
 
 // 또는 createMany 사용 (더 효율적)
-async function createUsersInBatch(userData: CreateUserData[]) {
-  return await db.user.createMany({
+async function createUsersInBatch(
+  userData: Array<{ email: string; name?: string }>
+) {
+  return await prisma.user.createMany({
     data: userData,
     skipDuplicates: true, // 중복 시 건너뛰기
+  });
+}
+
+// 제품 배치 생성
+async function createProductsInBatch(
+  userId: string,
+  productData: Array<{
+    name: string;
+    price: number;
+    description?: string;
+    category?: string;
+  }>
+) {
+  return await prisma.product.createMany({
+    data: productData.map(product => ({
+      ...product,
+      userId,
+    })),
+    skipDuplicates: false,
   });
 }
 ```
@@ -504,24 +607,34 @@ main()
 ### 쿼리 로깅
 
 ```typescript
-// packages/db/index.ts
+// packages/db/src/client/client.ts
 import { PrismaClient } from "@prisma/client";
 
-const db = new PrismaClient({
-  log: [
-    { emit: "event", level: "query" },
-    { emit: "event", level: "error" },
-    { emit: "event", level: "warn" },
-  ],
-});
+const prismaClientSingleton = () => {
+  return new PrismaClient({
+    log: [
+      { emit: "event", level: "query" },
+      { emit: "event", level: "error" },
+      { emit: "event", level: "warn" },
+    ],
+  });
+};
+
+declare global {
+  var prisma: undefined | ReturnType<typeof prismaClientSingleton>;
+}
+
+export const prisma = globalThis.prisma ?? prismaClientSingleton();
+
+if (process.env.NODE_ENV !== "production") {
+  globalThis.prisma = prisma;
+}
 
 // 쿼리 로깅
-db.$on("query", e => {
+prisma.$on("query", e => {
   console.log("Query: " + e.query);
   console.log("Duration: " + e.duration + "ms");
 });
-
-export { db };
 ```
 
 ### 연결 풀 설정

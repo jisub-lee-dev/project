@@ -1,0 +1,760 @@
+---
+inclusion: fileMatch
+fileMatchPattern: "**/*.test.{ts,tsx,js,jsx}"
+---
+
+# 테스트 가이드라인
+
+## 테스트 환경 설정
+
+### 현재 테스트 스택
+
+- **Jest**: 30.0.4 (테스트 러너)
+- **Testing Library**: React 16.1.0, DOM 10.4.0, User Event 14.6.1
+- **Jest Environment**: jsdom 30.0.4
+- **TypeScript**: 5.8.3 지원
+
+### 테스트 설정 파일
+
+```javascript
+// jest.config.js (루트)
+module.exports = {
+  projects: [
+    "<rootDir>/packages/*/jest.config.js",
+    "<rootDir>/apps/*/jest.config.js",
+  ],
+  collectCoverageFrom: [
+    "src/**/*.{ts,tsx}",
+    "!src/**/*.d.ts",
+    "!src/**/*.stories.{ts,tsx}",
+  ],
+};
+```
+
+## 패키지별 테스트 전략
+
+### @repo/utils 패키지 테스트
+
+**테스트 파일 구조:**
+
+```
+packages/utils/src/
+├── string/
+│   ├── utils.ts
+│   └── __tests__/
+│       └── utils.test.ts
+├── date/
+│   ├── utils.ts
+│   └── __tests__/
+│       └── utils.test.ts
+└── array/
+    ├── utils.ts
+    └── __tests__/
+        └── utils.test.ts
+```
+
+**유틸리티 함수 테스트 예시:**
+
+```typescript
+// packages/utils/src/string/__tests__/utils.test.ts
+import { slugify, truncate, capitalize } from "../utils";
+
+describe("String utilities", () => {
+  describe("slugify", () => {
+    it("should convert string to URL-friendly slug", () => {
+      expect(slugify("Hello World!")).toBe("hello-world");
+      expect(slugify("한글 테스트")).toBe("한글-테스트");
+      expect(slugify("  Multiple   Spaces  ")).toBe("multiple-spaces");
+    });
+
+    it("should handle empty string", () => {
+      expect(slugify("")).toBe("");
+    });
+
+    it("should remove special characters", () => {
+      expect(slugify("Hello@#$%World")).toBe("helloworld");
+    });
+  });
+
+  describe("truncate", () => {
+    it("should truncate long text with ellipsis", () => {
+      const longText = "This is a very long text that should be truncated";
+      expect(truncate(longText, 20)).toBe("This is a very long...");
+    });
+
+    it("should not truncate short text", () => {
+      const shortText = "Short text";
+      expect(truncate(shortText, 20)).toBe("Short text");
+    });
+
+    it("should handle edge cases", () => {
+      expect(truncate("", 10)).toBe("");
+      expect(truncate("Test", 0)).toBe("...");
+    });
+  });
+
+  describe("capitalize", () => {
+    it("should capitalize first letter", () => {
+      expect(capitalize("hello")).toBe("Hello");
+      expect(capitalize("HELLO")).toBe("Hello");
+    });
+
+    it("should handle empty string", () => {
+      expect(capitalize("")).toBe("");
+    });
+  });
+});
+```
+
+**날짜 유틸리티 테스트:**
+
+```typescript
+// packages/utils/src/date/__tests__/utils.test.ts
+import { formatDate, formatRelativeTime, isValidDateRange } from "../utils";
+
+describe("Date utilities", () => {
+  describe("formatDate", () => {
+    it("should format date in Korean", () => {
+      const date = new Date("2025-01-17");
+      expect(formatDate(date)).toBe("2025년 01월 17일");
+    });
+
+    it("should handle custom format", () => {
+      const date = new Date("2025-01-17");
+      expect(formatDate(date, "yyyy-MM-dd")).toBe("2025-01-17");
+    });
+
+    it("should handle invalid date", () => {
+      expect(formatDate("invalid-date")).toBe("Invalid Date");
+    });
+  });
+
+  describe("formatRelativeTime", () => {
+    it("should format relative time", () => {
+      const now = new Date();
+      const pastDate = new Date(now.getTime() - 60000); // 1분 전
+
+      expect(formatRelativeTime(pastDate)).toContain("분 전");
+    });
+  });
+
+  describe("isValidDateRange", () => {
+    it("should validate date range", () => {
+      const start = new Date("2025-01-01");
+      const end = new Date("2025-01-31");
+
+      expect(isValidDateRange(start, end)).toBe(true);
+      expect(isValidDateRange(end, start)).toBe(false);
+    });
+  });
+});
+```
+
+### @repo/validation 패키지 테스트
+
+**스키마 테스트 예시:**
+
+```typescript
+// packages/validation/src/user/__tests__/schemas.test.ts
+import { UserSchema, CreateUserSchema, LoginSchema } from "../schemas";
+
+describe("User schemas", () => {
+  describe("UserSchema", () => {
+    it("should validate valid user data", () => {
+      const validUser = {
+        id: "user123",
+        email: "test@example.com",
+        name: "Test User",
+        avatar: "https://example.com/avatar.jpg",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      expect(() => UserSchema.parse(validUser)).not.toThrow();
+    });
+
+    it("should reject invalid email", () => {
+      const invalidUser = {
+        id: "user123",
+        email: "invalid-email",
+        name: "Test User",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      expect(() => UserSchema.parse(invalidUser)).toThrow();
+    });
+
+    it("should reject name that is too long", () => {
+      const invalidUser = {
+        id: "user123",
+        email: "test@example.com",
+        name: "a".repeat(51), // 50자 초과
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      expect(() => UserSchema.parse(invalidUser)).toThrow();
+    });
+  });
+
+  describe("CreateUserSchema", () => {
+    it("should require password", () => {
+      const userData = {
+        email: "test@example.com",
+        name: "Test User",
+      };
+
+      expect(() => CreateUserSchema.parse(userData)).toThrow();
+    });
+
+    it("should validate with password", () => {
+      const userData = {
+        email: "test@example.com",
+        name: "Test User",
+        password: "password123",
+      };
+
+      expect(() => CreateUserSchema.parse(userData)).not.toThrow();
+    });
+
+    it("should reject short password", () => {
+      const userData = {
+        email: "test@example.com",
+        name: "Test User",
+        password: "123", // 8자 미만
+      };
+
+      expect(() => CreateUserSchema.parse(userData)).toThrow();
+    });
+  });
+
+  describe("LoginSchema", () => {
+    it("should validate login data", () => {
+      const loginData = {
+        email: "test@example.com",
+        password: "password123",
+      };
+
+      expect(() => LoginSchema.parse(loginData)).not.toThrow();
+    });
+
+    it("should require both email and password", () => {
+      expect(() => LoginSchema.parse({ email: "test@example.com" })).toThrow();
+      expect(() => LoginSchema.parse({ password: "password123" })).toThrow();
+    });
+  });
+});
+```
+
+**Product 스키마 테스트:**
+
+```typescript
+// packages/validation/src/product/__tests__/schemas.test.ts
+import { ProductSchema, CreateProductSchema, CategoryEnum } from "../schemas";
+
+describe("Product schemas", () => {
+  describe("ProductSchema", () => {
+    it("should validate valid product data", () => {
+      const validProduct = {
+        name: "Test Product",
+        description: "Test description",
+        price: 99.99,
+        category: "ELECTRONICS",
+        inStock: true,
+      };
+
+      expect(() => ProductSchema.parse(validProduct)).not.toThrow();
+    });
+
+    it("should reject negative price", () => {
+      const invalidProduct = {
+        name: "Test Product",
+        price: -10,
+        category: "ELECTRONICS",
+      };
+
+      expect(() => ProductSchema.parse(invalidProduct)).toThrow();
+    });
+
+    it("should reject price over limit", () => {
+      const invalidProduct = {
+        name: "Test Product",
+        price: 1000000, // 999,999.99 초과
+        category: "ELECTRONICS",
+      };
+
+      expect(() => ProductSchema.parse(invalidProduct)).toThrow();
+    });
+  });
+
+  describe("CategoryEnum", () => {
+    it("should accept valid categories", () => {
+      const validCategories = [
+        "ELECTRONICS",
+        "CLOTHING",
+        "BOOKS",
+        "FOOD",
+        "OTHER",
+      ];
+
+      validCategories.forEach(category => {
+        expect(() => CategoryEnum.parse(category)).not.toThrow();
+      });
+    });
+
+    it("should reject invalid category", () => {
+      expect(() => CategoryEnum.parse("INVALID_CATEGORY")).toThrow();
+    });
+  });
+});
+```
+
+### @repo/ui 패키지 테스트
+
+**컴포넌트 테스트 설정:**
+
+```typescript
+// packages/ui/jest.setup.js
+import "@testing-library/jest-dom";
+
+// Mock framer-motion
+jest.mock("framer-motion", () => ({
+  motion: {
+    div: "div",
+    button: "button",
+    span: "span",
+  },
+  AnimatePresence: ({ children }) => children,
+}));
+```
+
+**Button 컴포넌트 테스트:**
+
+```typescript
+// packages/ui/src/components/ui/__tests__/button.test.tsx
+import { render, screen, fireEvent } from "@testing-library/react";
+import { Button } from "../button";
+
+describe("Button", () => {
+  it("renders correctly", () => {
+    render(<Button>Click me</Button>);
+    expect(screen.getByRole("button")).toBeInTheDocument();
+    expect(screen.getByText("Click me")).toBeInTheDocument();
+  });
+
+  it("handles click events", () => {
+    const handleClick = jest.fn();
+    render(<Button onClick={handleClick}>Click me</Button>);
+
+    fireEvent.click(screen.getByRole("button"));
+    expect(handleClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows loading state", () => {
+    render(<Button loading>Click me</Button>);
+    expect(screen.getByText("Loading...")).toBeInTheDocument();
+    expect(screen.getByRole("button")).toBeDisabled();
+  });
+
+  it("applies variant styles", () => {
+    render(<Button variant="destructive">Delete</Button>);
+    const button = screen.getByRole("button");
+    expect(button).toHaveClass("bg-destructive");
+  });
+
+  it("supports keyboard navigation", () => {
+    const handleClick = jest.fn();
+    render(<Button onClick={handleClick}>Click me</Button>);
+
+    const button = screen.getByRole("button");
+    fireEvent.keyDown(button, { key: "Enter" });
+    expect(handleClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("supports asChild prop", () => {
+    render(
+      <Button asChild>
+        <a href="/test">Link Button</a>
+      </Button>
+    );
+
+    expect(screen.getByRole("link")).toBeInTheDocument();
+    expect(screen.getByText("Link Button")).toBeInTheDocument();
+  });
+});
+```
+
+**Card 컴포넌트 테스트:**
+
+```typescript
+// packages/ui/src/components/ui/__tests__/card.test.tsx
+import { render, screen } from "@testing-library/react";
+import { Card, CardHeader, CardTitle, CardContent } from "../card";
+
+describe("Card components", () => {
+  it("renders card with all parts", () => {
+    render(
+      <Card>
+        <CardHeader>
+          <CardTitle>Test Title</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>Test content</p>
+        </CardContent>
+      </Card>
+    );
+
+    expect(screen.getByText("Test Title")).toBeInTheDocument();
+    expect(screen.getByText("Test content")).toBeInTheDocument();
+  });
+
+  it("applies custom className", () => {
+    render(<Card className="custom-class">Content</Card>);
+    const card = screen.getByText("Content").parentElement;
+    expect(card).toHaveClass("custom-class");
+  });
+});
+```
+
+### Next.js 앱 테스트
+
+**페이지 컴포넌트 테스트:**
+
+```typescript
+// apps/web/src/app/__tests__/page.test.tsx
+import { render, screen } from "@testing-library/react";
+import HomePage from "../page";
+
+// Mock framer-motion
+jest.mock("framer-motion", () => ({
+  motion: {
+    div: ({ children, ...props }) => <div {...props}>{children}</div>,
+    h1: ({ children, ...props }) => <h1 {...props}>{children}</h1>,
+    p: ({ children, ...props }) => <p {...props}>{children}</p>,
+  },
+  useScroll: () => ({ scrollYProgress: { get: () => 0 } }),
+  useTransform: () => ({ get: () => "0%" }),
+}));
+
+describe("HomePage", () => {
+  it("renders main heading", () => {
+    render(<HomePage />);
+    expect(screen.getByText("Modern Full-Stack")).toBeInTheDocument();
+    expect(screen.getByText("Monorepo")).toBeInTheDocument();
+  });
+
+  it("displays tech stack badges", () => {
+    render(<HomePage />);
+    expect(screen.getByText("Next.js 15")).toBeInTheDocument();
+    expect(screen.getByText("React 19")).toBeInTheDocument();
+    expect(screen.getByText("TypeScript 5.6")).toBeInTheDocument();
+  });
+
+  it("shows feature cards", () => {
+    render(<HomePage />);
+    expect(screen.getByText("고성능 빌드 시스템")).toBeInTheDocument();
+    expect(screen.getByText("현대적 기술 스택")).toBeInTheDocument();
+    expect(screen.getByText("모듈화된 아키텍처")).toBeInTheDocument();
+  });
+
+  it("displays project structure", () => {
+    render(<HomePage />);
+    expect(screen.getByText("apps/web")).toBeInTheDocument();
+    expect(screen.getByText("packages/ui")).toBeInTheDocument();
+    expect(screen.getByText("packages/db")).toBeInTheDocument();
+  });
+});
+```
+
+**API 라우트 테스트:**
+
+```typescript
+// apps/web/src/app/api/users/__tests__/route.test.ts
+import { NextRequest } from "next/server";
+import { GET, POST } from "../route";
+
+// Mock Prisma
+jest.mock("@repo/db", () => ({
+  prisma: {
+    user: {
+      findMany: jest.fn(),
+      create: jest.fn(),
+      count: jest.fn(),
+    },
+  },
+}));
+
+describe("/api/users", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe("GET", () => {
+    it("should return users list", async () => {
+      const mockUsers = [
+        { id: "1", email: "user1@example.com", name: "User 1" },
+        { id: "2", email: "user2@example.com", name: "User 2" },
+      ];
+
+      require("@repo/db").prisma.user.findMany.mockResolvedValue(mockUsers);
+
+      const request = new NextRequest(
+        "http://localhost:3000/api/users?page=1&limit=10"
+      );
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.data).toEqual(mockUsers);
+    });
+
+    it("should handle database errors", async () => {
+      require("@repo/db").prisma.user.findMany.mockRejectedValue(
+        new Error("DB Error")
+      );
+
+      const request = new NextRequest("http://localhost:3000/api/users");
+      const response = await GET(request);
+
+      expect(response.status).toBe(500);
+    });
+  });
+
+  describe("POST", () => {
+    it("should create a new user", async () => {
+      const newUser = { id: "1", email: "test@example.com", name: "Test User" };
+      require("@repo/db").prisma.user.create.mockResolvedValue(newUser);
+
+      const request = new NextRequest("http://localhost:3000/api/users", {
+        method: "POST",
+        body: JSON.stringify({ email: "test@example.com", name: "Test User" }),
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(201);
+      expect(data).toEqual(newUser);
+    });
+
+    it("should validate request body", async () => {
+      const request = new NextRequest("http://localhost:3000/api/users", {
+        method: "POST",
+        body: JSON.stringify({ email: "invalid-email" }),
+      });
+
+      const response = await POST(request);
+
+      expect(response.status).toBe(400);
+    });
+  });
+});
+```
+
+## 테스트 실행 및 커버리지
+
+### 테스트 명령어
+
+```bash
+# 모든 테스트 실행
+pnpm test
+
+# 특정 패키지 테스트
+pnpm --filter @repo/utils test
+pnpm --filter @repo/ui test
+pnpm --filter web test
+
+# 감시 모드
+pnpm test:watch
+
+# 커버리지 포함
+pnpm test --coverage
+```
+
+### 커버리지 목표
+
+- **유틸리티 함수**: 100% 커버리지
+- **검증 스키마**: 95% 이상
+- **UI 컴포넌트**: 90% 이상
+- **API 라우트**: 85% 이상
+
+## 접근성 테스트
+
+### jest-axe 설정
+
+```typescript
+// packages/ui/src/__tests__/accessibility.test.tsx
+import { render } from "@testing-library/react";
+import { axe, toHaveNoViolations } from "jest-axe";
+import { Button } from "../components/ui/button";
+
+expect.extend(toHaveNoViolations);
+
+describe("Accessibility tests", () => {
+  it("Button should not have accessibility violations", async () => {
+    const { container } = render(<Button>Accessible button</Button>);
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+
+  it("Card should not have accessibility violations", async () => {
+    const { container } = render(
+      <Card>
+        <CardHeader>
+          <CardTitle>Accessible Card</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>Card content</p>
+        </CardContent>
+      </Card>
+    );
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+});
+```
+
+## 통합 테스트
+
+### 데이터베이스 통합 테스트
+
+```typescript
+// packages/db/__tests__/integration.test.ts
+import { prisma } from "../src/client/client";
+
+describe("Database integration", () => {
+  beforeEach(async () => {
+    // 테스트 데이터 정리
+    await prisma.product.deleteMany();
+    await prisma.user.deleteMany();
+  });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
+
+  it("should create user with products", async () => {
+    const user = await prisma.user.create({
+      data: {
+        email: "test@example.com",
+        name: "Test User",
+      },
+    });
+
+    const product = await prisma.product.create({
+      data: {
+        name: "Test Product",
+        price: 99.99,
+        userId: user.id,
+      },
+    });
+
+    expect(user.id).toBeDefined();
+    expect(product.userId).toBe(user.id);
+  });
+
+  it("should enforce foreign key constraints", async () => {
+    await expect(
+      prisma.product.create({
+        data: {
+          name: "Test Product",
+          price: 99.99,
+          userId: "non-existent-id",
+        },
+      })
+    ).rejects.toThrow();
+  });
+});
+```
+
+## 성능 테스트
+
+### 컴포넌트 렌더링 성능
+
+```typescript
+// packages/ui/src/__tests__/performance.test.tsx
+import { render } from "@testing-library/react";
+import { Button } from "../components/ui/button";
+
+describe("Performance tests", () => {
+  it("should render Button quickly", () => {
+    const start = performance.now();
+
+    for (let i = 0; i < 100; i++) {
+      render(<Button>Test {i}</Button>);
+    }
+
+    const end = performance.now();
+    const duration = end - start;
+
+    // 100개 버튼 렌더링이 100ms 이내에 완료되어야 함
+    expect(duration).toBeLessThan(100);
+  });
+});
+```
+
+## 테스트 모범 사례
+
+### 1. 테스트 구조
+
+- **Arrange**: 테스트 데이터 준비
+- **Act**: 테스트할 동작 실행
+- **Assert**: 결과 검증
+
+### 2. 테스트 네이밍
+
+```typescript
+// ✅ 좋은 테스트 이름
+it("should return user data when valid ID is provided", () => {});
+it("should throw error when user is not found", () => {});
+
+// ❌ 나쁜 테스트 이름
+it("test user function", () => {});
+it("should work", () => {});
+```
+
+### 3. Mock 사용 원칙
+
+- 외부 의존성만 Mock
+- 테스트하는 코드는 Mock하지 않음
+- Mock은 최소한으로 사용
+
+### 4. 테스트 독립성
+
+- 각 테스트는 독립적으로 실행 가능해야 함
+- 테스트 간 상태 공유 금지
+- beforeEach/afterEach로 상태 초기화
+
+## CI/CD 통합
+
+### GitHub Actions 예시
+
+```yaml
+# .github/workflows/test.yml
+name: Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+      - run: npm install -g pnpm
+      - run: pnpm install
+      - run: pnpm test --coverage
+      - uses: codecov/codecov-action@v3
+```
+
+### 테스트 품질 체크리스트
+
+- [ ] 모든 새 기능에 테스트 작성
+- [ ] 커버리지 목표 달성
+- [ ] 접근성 테스트 포함
+- [ ] 에러 케이스 테스트
+- [ ] 성능 테스트 (필요시)
+- [ ] CI/CD 파이프라인 통과

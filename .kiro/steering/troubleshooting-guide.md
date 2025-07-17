@@ -1,0 +1,553 @@
+---
+inclusion: always
+---
+
+# 문제 해결 가이드
+
+## 일반적인 문제 및 해결책
+
+### 1. 타입 에러 문제
+
+#### 문제: Prisma 타입 에러
+
+```
+Property 'products' does not exist on type 'User'
+```
+
+**해결책:**
+
+```bash
+# Prisma 클라이언트 재생성
+pnpm db:generate
+
+# 타입 체크 실행
+pnpm type-check
+```
+
+#### 문제: 패키지 간 타입 불일치
+
+```
+Type 'CreateUser' is not assignable to type 'User'
+```
+
+**해결책:**
+
+```typescript
+// ✅ 올바른 타입 import
+import type { CreateUser, User } from "@repo/validation";
+
+// ✅ 올바른 타입 사용
+const userData: CreateUser = { email: "test@example.com", name: "Test" };
+const user: User = await prisma.user.create({ data: userData });
+```
+
+### 2. 의존성 관련 문제
+
+#### 문제: 패키지 설치 실패
+
+```
+ERR_PNPM_PEER_DEP_ISSUES
+```
+
+**해결책:**
+
+```bash
+# 전체 초기화 후 재설치
+pnpm reset
+
+# 또는 개별 패키지 정리
+pnpm --filter @repo/ui clean
+pnpm install
+```
+
+#### 문제: 순환 의존성 에러
+
+```
+Circular dependency detected
+```
+
+**해결책:**
+
+1. 의존성 관계 확인:
+   - `@repo/validation`은 다른 패키지에 의존하면 안됨
+   - `@repo/utils` → `@repo/validation`만 허용
+   - `@repo/ui` → `@repo/validation`, `@repo/utils`만 허용
+
+2. 잘못된 import 수정:
+
+```typescript
+// ❌ 순환 의존성 발생
+// @repo/validation에서 @repo/utils import
+
+// ✅ 올바른 구조
+// @repo/utils에서 @repo/validation import
+```
+
+### 3. 빌드 관련 문제
+
+#### 문제: Turbo 빌드 실패
+
+```
+Task failed with exit code 1
+```
+
+**해결책:**
+
+```bash
+# Turbo 캐시 클리어
+rm -rf .turbo
+
+# 전체 빌드 재실행
+pnpm build
+
+# 특정 패키지만 빌드
+pnpm --filter @repo/ui build
+```
+
+#### 문제: Next.js 빌드 에러
+
+```
+Module not found: Can't resolve '@repo/ui'
+```
+
+**해결책:**
+
+```bash
+# 의존성 확인
+pnpm --filter web list
+
+# 패키지 빌드 순서 확인
+pnpm build
+
+# 개발 서버 재시작
+pnpm dev
+```
+
+### 4. 데이터베이스 관련 문제
+
+#### 문제: Prisma 연결 실패
+
+```
+Can't reach database server
+```
+
+**해결책:**
+
+```bash
+# PostgreSQL 서버 시작
+pnpm docker:dev
+
+# 연결 확인
+pnpm db:studio
+
+# 환경 변수 확인
+cat packages/db/.env
+```
+
+#### 문제: 스키마 동기화 문제
+
+```
+The table `users` does not exist in the current database
+```
+
+**해결책:**
+
+```bash
+# 개발 환경에서 스키마 적용
+pnpm db:push
+
+# 또는 마이그레이션 실행
+pnpm db:migrate dev
+
+# 클라이언트 재생성
+pnpm db:generate
+```
+
+### 5. 개발 서버 문제
+
+#### 문제: 포트 충돌
+
+```
+Port 3000 is already in use
+```
+
+**해결책:**
+
+```bash
+# 포트 사용 프로세스 확인
+lsof -ti:3000
+
+# 프로세스 종료
+kill -9 $(lsof -ti:3000)
+
+# 또는 다른 포트 사용
+PORT=3001 pnpm dev
+```
+
+#### 문제: Hot Reload 작동 안함
+
+**해결책:**
+
+```bash
+# 개발 서버 재시작
+pnpm dev
+
+# 캐시 클리어 후 재시작
+rm -rf .next
+pnpm dev
+```
+
+### 6. 패키지별 특정 문제
+
+#### @repo/ui 패키지 문제
+
+**문제: cn 함수 import 에러**
+
+```
+Module not found: Can't resolve '../../lib/utils'
+```
+
+**해결책:**
+
+```typescript
+// ✅ UI 패키지 내부에서
+import { cn } from "../../lib/utils";
+
+// ✅ 외부 패키지에서
+import { cn } from "@repo/ui/lib/utils";
+```
+
+**문제: Tailwind 스타일 적용 안됨**
+**해결책:**
+
+```bash
+# Tailwind 설정 확인
+cat packages/ui/tailwind.config.js
+
+# 빌드 재실행
+pnpm --filter @repo/ui build
+```
+
+#### @repo/validation 패키지 문제
+
+**문제: Zod 스키마 파싱 에러**
+
+```
+ZodError: Invalid input
+```
+
+**해결책:**
+
+```typescript
+// 스키마 검증 디버깅
+try {
+  const result = CreateUserSchema.parse(data);
+} catch (error) {
+  if (error instanceof z.ZodError) {
+    console.log("Validation errors:", error.errors);
+  }
+}
+```
+
+#### @repo/db 패키지 문제
+
+**문제: Prisma 클라이언트 import 에러**
+
+```
+Cannot find module '@repo/db'
+```
+
+**해결책:**
+
+```typescript
+// ✅ 올바른 import
+import { prisma } from "@repo/db";
+
+// ❌ 잘못된 import
+import { db } from "@repo/db";
+```
+
+## 성능 문제 해결
+
+### 1. 빌드 성능 최적화
+
+#### 느린 빌드 시간
+
+**해결책:**
+
+```bash
+# Turbo 캐시 활용 확인
+pnpm build --verbose
+
+# 병렬 빌드 최적화
+pnpm build --parallel
+
+# 불필요한 의존성 제거
+pnpm audit
+```
+
+#### 메모리 부족 에러
+
+**해결책:**
+
+```bash
+# Node.js 메모리 제한 증가
+NODE_OPTIONS="--max-old-space-size=4096" pnpm build
+
+# 또는 package.json에 설정
+{
+  "scripts": {
+    "build": "NODE_OPTIONS='--max-old-space-size=4096' turbo run build"
+  }
+}
+```
+
+### 2. 런타임 성능 문제
+
+#### 느린 페이지 로딩
+
+**해결책:**
+
+```typescript
+// 동적 import 사용
+const HeavyComponent = dynamic(() => import('./heavy-component'), {
+  loading: () => <p>Loading...</p>
+});
+
+// 이미지 최적화
+import Image from 'next/image';
+
+<Image
+  src="/image.jpg"
+  alt="Description"
+  width={800}
+  height={600}
+  priority
+/>
+```
+
+#### 데이터베이스 쿼리 최적화
+
+```typescript
+// ✅ 필요한 필드만 선택
+const users = await prisma.user.findMany({
+  select: {
+    id: true,
+    name: true,
+    email: true,
+  },
+});
+
+// ✅ 관계 데이터 효율적 로딩
+const usersWithProducts = await prisma.user.findMany({
+  include: {
+    products: {
+      take: 5,
+      where: { inStock: true },
+    },
+  },
+});
+```
+
+## 디버깅 도구 및 방법
+
+### 1. 로그 확인
+
+#### Turbo 로그
+
+```bash
+# 상세 로그 출력
+pnpm build --verbose
+
+# 특정 패키지 로그
+pnpm --filter @repo/ui build --verbose
+```
+
+#### Next.js 로그
+
+```bash
+# 개발 서버 디버그 모드
+DEBUG=* pnpm dev
+
+# 빌드 분석
+ANALYZE=true pnpm build
+```
+
+#### Prisma 로그
+
+```typescript
+// packages/db/src/client/client.ts
+const prisma = new PrismaClient({
+  log: ["query", "info", "warn", "error"],
+});
+```
+
+### 2. 개발 도구
+
+#### React DevTools
+
+- 컴포넌트 트리 확인
+- Props 및 State 디버깅
+- 성능 프로파일링
+
+#### Prisma Studio
+
+```bash
+pnpm db:studio
+```
+
+#### Next.js DevTools
+
+- 페이지 성능 분석
+- 번들 크기 확인
+- 네트워크 요청 모니터링
+
+### 3. 타입 체크 및 린팅
+
+#### TypeScript 에러 확인
+
+```bash
+# 전체 프로젝트 타입 체크
+pnpm type-check
+
+# 특정 패키지만 체크
+pnpm --filter @repo/ui type-check
+```
+
+#### ESLint 에러 확인
+
+```bash
+# 전체 프로젝트 린트
+pnpm lint
+
+# 자동 수정
+pnpm lint:fix
+```
+
+## 환경별 문제 해결
+
+### 개발 환경
+
+#### 환경 변수 설정
+
+```bash
+# 환경 변수 파일 확인
+ls -la .env*
+
+# 데이터베이스 연결 확인
+echo $DATABASE_URL
+```
+
+#### Docker 관련 문제
+
+```bash
+# PostgreSQL 컨테이너 상태 확인
+docker ps
+
+# 컨테이너 재시작
+pnpm docker:down
+pnpm docker:dev
+
+# 로그 확인
+docker logs postgres-container
+```
+
+### 프로덕션 환경
+
+#### 빌드 최적화
+
+```bash
+# 프로덕션 빌드
+NODE_ENV=production pnpm build
+
+# 번들 분석
+pnpm build --analyze
+```
+
+#### 환경 변수 검증
+
+```typescript
+// 환경 변수 스키마 검증
+const envSchema = z.object({
+  DATABASE_URL: z.string().url(),
+  NEXT_PUBLIC_APP_URL: z.string().url(),
+});
+
+const env = envSchema.parse(process.env);
+```
+
+## 자주 발생하는 에러 메시지
+
+### 1. TypeScript 에러
+
+| 에러 메시지                                       | 원인               | 해결책             |
+| ------------------------------------------------- | ------------------ | ------------------ |
+| `Cannot find module '@repo/ui'`                   | 패키지 빌드 안됨   | `pnpm build`       |
+| `Property 'products' does not exist`              | Prisma 타입 미생성 | `pnpm db:generate` |
+| `Type 'string' is not assignable to type 'never'` | 타입 정의 문제     | 타입 정의 수정     |
+
+### 2. 빌드 에러
+
+| 에러 메시지                    | 원인        | 해결책              |
+| ------------------------------ | ----------- | ------------------- |
+| `Task failed with exit code 1` | 빌드 실패   | 로그 확인 후 수정   |
+| `Module not found`             | 의존성 문제 | `pnpm install`      |
+| `Out of memory`                | 메모리 부족 | Node.js 메모리 증가 |
+
+### 3. 런타임 에러
+
+| 에러 메시지                             | 원인             | 해결책               |
+| --------------------------------------- | ---------------- | -------------------- |
+| `PrismaClientInitializationError`       | DB 연결 실패     | 환경 변수 확인       |
+| `ZodError`                              | 데이터 검증 실패 | 스키마 확인          |
+| `ReferenceError: window is not defined` | SSR 문제         | 클라이언트 체크 추가 |
+
+## 응급 복구 절차
+
+### 1. 전체 초기화
+
+```bash
+# 모든 node_modules 삭제
+pnpm reset
+
+# 캐시 클리어
+rm -rf .turbo
+rm -rf .next
+
+# 재설치
+pnpm install
+pnpm build
+```
+
+### 2. 데이터베이스 초기화
+
+```bash
+# 개발 DB 리셋
+pnpm db:push --force-reset
+
+# 마이그레이션 리셋
+pnpm db:migrate reset
+```
+
+### 3. 개발 환경 복구
+
+```bash
+# 환경 변수 복사
+cp .env.example .env
+cp packages/db/.env.example packages/db/.env
+
+# 초기 설정 실행
+pnpm setup
+```
+
+## 도움 요청 시 체크리스트
+
+문제 해결이 어려울 때 다음 정보를 수집하여 도움을 요청하세요:
+
+- [ ] 에러 메시지 전문
+- [ ] 실행한 명령어
+- [ ] 환경 정보 (OS, Node.js 버전)
+- [ ] 패키지 버전 (`pnpm list`)
+- [ ] 최근 변경사항
+- [ ] 재현 단계
+- [ ] 로그 파일 내용

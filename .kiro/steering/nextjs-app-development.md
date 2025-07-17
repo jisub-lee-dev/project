@@ -1,0 +1,625 @@
+---
+inclusion: fileMatch
+fileMatchPattern: "apps/web/**/*"
+---
+
+# Next.js 앱 개발 가이드
+
+## 현재 Next.js 설정
+
+### 버전 및 구성
+
+- **Next.js**: 15.3.5 (App Router)
+- **React**: 19.0.0
+- **TypeScript**: 5.8.3
+- **Tailwind CSS**: v4.0.1
+
+### 실제 앱 구조
+
+```
+apps/web/src/
+├── app/
+│   ├── favicon.ico
+│   ├── globals.css           # 전역 스타일
+│   ├── layout.tsx            # 루트 레이아웃
+│   └── page.tsx              # 홈페이지 (현재 구현됨)
+└── lib/
+    └── utils.ts              # 앱별 유틸리티
+```
+
+## 현재 구현된 기능들
+
+### 홈페이지 (page.tsx)
+
+현재 홈페이지는 다음 기능들을 포함하고 있습니다:
+
+- **Framer Motion 애니메이션**: 스크롤 기반 애니메이션
+- **@repo/ui 컴포넌트 사용**: Badge, Card, Progress 등
+- **반응형 디자인**: Tailwind CSS 기반
+- **기술 스택 소개**: 현재 프로젝트에서 사용 중인 기술들
+- **프로젝트 구조 시각화**: 모노레포 패키지 구조 표시
+
+### 사용 중인 @repo/ui 컴포넌트들
+
+```typescript
+// 현재 홈페이지에서 실제 사용 중인 컴포넌트들
+import { Badge } from "@repo/ui/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@repo/ui/components/ui/card";
+import { Progress } from "@repo/ui/components/ui/progress";
+```
+
+## 새로운 페이지 개발 패턴
+
+### 1. 기본 페이지 생성
+
+```typescript
+// apps/web/src/app/about/page.tsx
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "About - Project",
+  description: "프로젝트에 대한 소개",
+};
+
+export default function AboutPage() {
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-4xl font-bold mb-6">About</h1>
+      <p className="text-muted-foreground">페이지 내용</p>
+    </div>
+  );
+}
+```
+
+### 2. 동적 라우트 생성
+
+```typescript
+// apps/web/src/app/products/[id]/page.tsx
+import { notFound } from "next/navigation";
+import { prisma } from "@repo/db";
+import { ProductSchema } from "@repo/validation";
+
+interface ProductPageProps {
+  params: { id: string };
+}
+
+export default async function ProductPage({ params }: ProductPageProps) {
+  const product = await prisma.product.findUnique({
+    where: { id: params.id },
+    include: { user: true },
+  });
+
+  if (!product) {
+    notFound();
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-4xl font-bold mb-4">{product.name}</h1>
+      <p className="text-muted-foreground mb-4">{product.description}</p>
+      <p className="text-2xl font-semibold">₩{product.price.toString()}</p>
+    </div>
+  );
+}
+```
+
+### 3. 레이아웃 컴포넌트
+
+```typescript
+// apps/web/src/app/dashboard/layout.tsx
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="min-h-screen bg-background">
+      <nav className="border-b">
+        <div className="container mx-auto px-4 py-4">
+          <h1 className="text-xl font-semibold">Dashboard</h1>
+        </div>
+      </nav>
+      <main className="container mx-auto px-4 py-8">
+        {children}
+      </main>
+    </div>
+  );
+}
+```
+
+## 컴포넌트 개발 패턴
+
+### 1. 페이지 컴포넌트에서 @repo/ui 사용
+
+```typescript
+// apps/web/src/app/products/page.tsx
+import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui";
+import { Badge } from "@repo/ui";
+import { Button } from "@repo/ui";
+import { prisma } from "@repo/db";
+import type { Product } from "@repo/validation";
+
+export default async function ProductsPage() {
+  const products = await prisma.product.findMany({
+    where: { inStock: true },
+    include: { user: true },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-4xl font-bold mb-8">Products</h1>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {products.map((product) => (
+          <Card key={product.id}>
+            <CardHeader>
+              <CardTitle>{product.name}</CardTitle>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">{product.category}</Badge>
+                {product.inStock && (
+                  <Badge variant="default">재고 있음</Badge>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground mb-4">
+                {product.description}
+              </p>
+              <div className="flex items-center justify-between">
+                <span className="text-2xl font-bold">
+                  ₩{product.price.toString()}
+                </span>
+                <Button>구매하기</Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+```
+
+### 2. 클라이언트 컴포넌트 패턴
+
+```typescript
+// apps/web/src/components/product-form.tsx
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button, Input, Textarea, Card, CardContent, CardHeader, CardTitle } from "@repo/ui";
+import { CreateProductSchema, type CreateProduct } from "@repo/validation";
+import { toast } from "sonner";
+
+export function ProductForm() {
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+
+  const handleSubmit = async (formData: FormData) => {
+    setIsLoading(true);
+
+    try {
+      const data = {
+        name: formData.get("name") as string,
+        description: formData.get("description") as string,
+        price: parseFloat(formData.get("price") as string),
+        category: formData.get("category") as string,
+      };
+
+      // 클라이언트에서 검증
+      const validatedData = CreateProductSchema.parse(data);
+
+      const response = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(validatedData),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create product");
+      }
+
+      toast.success("제품이 성공적으로 생성되었습니다!");
+      router.push("/products");
+    } catch (error) {
+      toast.error("제품 생성에 실패했습니다.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Card className="max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle>새 제품 등록</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form action={handleSubmit} className="space-y-4">
+          <Input
+            name="name"
+            placeholder="제품명"
+            required
+          />
+          <Textarea
+            name="description"
+            placeholder="제품 설명"
+            rows={3}
+          />
+          <Input
+            name="price"
+            type="number"
+            step="0.01"
+            placeholder="가격"
+            required
+          />
+          <Input
+            name="category"
+            placeholder="카테고리"
+          />
+          <Button type="submit" disabled={isLoading} className="w-full">
+            {isLoading ? "생성 중..." : "제품 생성"}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
+```
+
+## 스타일링 가이드
+
+### 1. Tailwind CSS 사용법
+
+```typescript
+// 현재 홈페이지에서 사용 중인 패턴들
+const containerClasses = "container mx-auto px-4 py-8";
+const headingClasses = "text-4xl font-bold mb-6";
+const mutedTextClasses = "text-muted-foreground";
+const cardHoverClasses = "transition-all duration-300 hover:shadow-md";
+```
+
+### 2. 반응형 디자인
+
+```typescript
+// 그리드 레이아웃 (현재 홈페이지에서 사용 중)
+const gridClasses = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6";
+
+// 텍스트 크기 반응형
+const responsiveTextClasses = "text-5xl md:text-7xl";
+```
+
+### 3. 다크모드 지원
+
+```typescript
+// Tailwind의 다크모드 클래스 사용
+const darkModeClasses = "bg-background text-foreground dark:bg-dark-background";
+```
+
+## 애니메이션 패턴 (Framer Motion)
+
+### 1. 페이지 진입 애니메이션
+
+```typescript
+// 현재 홈페이지에서 사용 중인 패턴
+import { motion } from "framer-motion";
+
+const fadeInUp = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.8 }
+};
+
+export default function AnimatedPage() {
+  return (
+    <motion.div {...fadeInUp}>
+      <h1>애니메이션이 적용된 페이지</h1>
+    </motion.div>
+  );
+}
+```
+
+### 2. 스크롤 기반 애니메이션
+
+```typescript
+// 현재 홈페이지에서 사용 중인 패턴
+import { motion, useScroll, useTransform } from "framer-motion";
+
+export default function ScrollAnimatedComponent() {
+  const { scrollYProgress } = useScroll();
+  const y = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
+
+  return (
+    <motion.div style={{ y }}>
+      <p>스크롤에 따라 움직이는 요소</p>
+    </motion.div>
+  );
+}
+```
+
+### 3. 목록 애니메이션
+
+```typescript
+// 현재 홈페이지에서 사용 중인 패턴
+const listItemVariants = {
+  initial: { opacity: 0, x: -20 },
+  animate: { opacity: 1, x: 0 },
+  transition: { duration: 0.5 }
+};
+
+{items.map((item, index) => (
+  <motion.div
+    key={index}
+    {...listItemVariants}
+    transition={{ ...listItemVariants.transition, delay: index * 0.1 }}
+  >
+    {item.content}
+  </motion.div>
+))}
+```
+
+## 데이터 페칭 패턴
+
+### 1. 서버 컴포넌트에서 데이터 페칭
+
+```typescript
+// 현재 User-Product 스키마에 맞는 패턴
+export default async function UsersPage() {
+  const users = await prisma.user.findMany({
+    include: {
+      products: {
+        where: { inStock: true },
+        take: 3,
+        orderBy: { createdAt: "desc" },
+      },
+      _count: { products: true },
+    },
+  });
+
+  return (
+    <div>
+      {users.map((user) => (
+        <div key={user.id}>
+          <h2>{user.name}</h2>
+          <p>총 제품: {user._count.products}개</p>
+          <div>
+            {user.products.map((product) => (
+              <span key={product.id}>{product.name}</span>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+### 2. 클라이언트에서 API 호출
+
+```typescript
+"use client";
+
+import { useEffect, useState } from "react";
+import type { User } from "@repo/validation";
+
+export function UsersList() {
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/users")
+      .then((res) => res.json())
+      .then((data) => {
+        setUsers(data.users);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) return <div>Loading...</div>;
+
+  return (
+    <div>
+      {users.map((user) => (
+        <div key={user.id}>{user.name}</div>
+      ))}
+    </div>
+  );
+}
+```
+
+## 메타데이터 및 SEO
+
+### 1. 정적 메타데이터
+
+```typescript
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Products - Modern Monorepo",
+  description: "현대적인 모노레포 프로젝트의 제품 목록",
+  keywords: ["products", "monorepo", "nextjs"],
+  openGraph: {
+    title: "Products",
+    description: "제품 목록을 확인하세요",
+    images: ["/og-image.jpg"],
+  },
+};
+```
+
+### 2. 동적 메타데이터
+
+```typescript
+import type { Metadata } from "next";
+import { prisma } from "@repo/db";
+
+interface ProductPageProps {
+  params: { id: string };
+}
+
+export async function generateMetadata({
+  params,
+}: ProductPageProps): Promise<Metadata> {
+  const product = await prisma.product.findUnique({
+    where: { id: params.id },
+  });
+
+  if (!product) {
+    return {
+      title: "Product Not Found",
+    };
+  }
+
+  return {
+    title: `${product.name} - Products`,
+    description: product.description,
+    openGraph: {
+      title: product.name,
+      description: product.description || "",
+    },
+  };
+}
+```
+
+## 에러 처리
+
+### 1. 에러 페이지
+
+```typescript
+// apps/web/src/app/error.tsx
+"use client";
+
+import { useEffect } from "react";
+import { Button } from "@repo/ui";
+
+export default function Error({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  useEffect(() => {
+    console.error(error);
+  }, [error]);
+
+  return (
+    <div className="container mx-auto px-4 py-8 text-center">
+      <h2 className="text-2xl font-bold mb-4">문제가 발생했습니다!</h2>
+      <p className="text-muted-foreground mb-4">
+        페이지를 로드하는 중 오류가 발생했습니다.
+      </p>
+      <Button onClick={reset}>다시 시도</Button>
+    </div>
+  );
+}
+```
+
+### 2. Not Found 페이지
+
+```typescript
+// apps/web/src/app/not-found.tsx
+import Link from "next/link";
+import { Button } from "@repo/ui";
+
+export default function NotFound() {
+  return (
+    <div className="container mx-auto px-4 py-8 text-center">
+      <h2 className="text-4xl font-bold mb-4">404</h2>
+      <p className="text-muted-foreground mb-4">
+        요청하신 페이지를 찾을 수 없습니다.
+      </p>
+      <Button asChild>
+        <Link href="/">홈으로 돌아가기</Link>
+      </Button>
+    </div>
+  );
+}
+```
+
+## 성능 최적화
+
+### 1. 이미지 최적화
+
+```typescript
+import Image from "next/image";
+
+export function OptimizedImage() {
+  return (
+    <Image
+      src="/hero-image.jpg"
+      alt="Hero Image"
+      width={1200}
+      height={600}
+      priority
+      className="rounded-lg"
+    />
+  );
+}
+```
+
+### 2. 동적 import
+
+```typescript
+import dynamic from "next/dynamic";
+
+const HeavyComponent = dynamic(() => import("./heavy-component"), {
+  loading: () => <p>Loading...</p>,
+  ssr: false,
+});
+```
+
+### 3. 스트리밍 및 Suspense
+
+```typescript
+import { Suspense } from "react";
+
+export default function Page() {
+  return (
+    <div>
+      <h1>페이지 제목</h1>
+      <Suspense fallback={<div>데이터 로딩 중...</div>}>
+        <DataComponent />
+      </Suspense>
+    </div>
+  );
+}
+```
+
+## 개발 도구 및 디버깅
+
+### 1. 개발 서버 실행
+
+```bash
+# 루트에서 모든 앱 실행
+pnpm dev
+
+# 웹 앱만 실행
+pnpm --filter web dev
+```
+
+### 2. 빌드 및 배포
+
+```bash
+# 프로덕션 빌드
+pnpm build
+
+# 빌드 결과 실행
+pnpm --filter web start
+```
+
+### 3. 타입 체크
+
+```bash
+# 전체 프로젝트 타입 체크
+pnpm type-check
+
+# 웹 앱만 타입 체크
+pnpm --filter web type-check
+```

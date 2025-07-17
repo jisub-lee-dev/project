@@ -11,7 +11,7 @@ fileMatchPattern: "packages/ui/**/*"
 
 ```typescript
 import { forwardRef } from "react";
-import { cn } from "@repo/utils";
+import { cn } from "../../lib/utils"; // UI 패키지 내부에서
 import { type VariantProps, cva } from "class-variance-authority";
 
 const componentVariants = cva(
@@ -55,20 +55,35 @@ export const Component = forwardRef<HTMLElement, ComponentProps>(
 Component.displayName = "Component";
 ```
 
-### 파일 구조
+### 실제 파일 구조
 
 ```
 packages/ui/src/
 ├── components/
-│   ├── button/
-│   │   ├── button.tsx
-│   │   ├── button.stories.tsx (선택사항)
-│   │   └── index.ts
-│   └── index.ts
-├── hooks/
-├── utils/
-└── index.ts
+│   └── ui/                   # shadcn/ui 컴포넌트들
+│       ├── badge.tsx
+│       ├── button.tsx
+│       ├── calendar.tsx
+│       ├── card.tsx
+│       ├── checkbox.tsx
+│       ├── form.tsx
+│       ├── input.tsx
+│       ├── label.tsx
+│       ├── popover.tsx
+│       ├── progress.tsx
+│       ├── select.tsx
+│       ├── separator.tsx
+│       └── textarea.tsx
+├── lib/
+│   └── utils.ts              # cn 함수 구현
+└── index.ts                  # 모든 컴포넌트 export
 ```
+
+**현재 구현된 컴포넌트들:**
+
+- Badge, Button, Calendar, Card, Checkbox
+- Form, Input, Label, Popover, Progress
+- Select, Separator, Textarea
 
 ## 스타일링 규칙
 

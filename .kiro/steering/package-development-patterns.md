@@ -1,0 +1,779 @@
+---
+inclusion: fileMatch
+fileMatchPattern: "packages/**/*"
+---
+
+# 패키지 개발 패턴 가이드
+
+## 패키지별 개발 규칙
+
+### @repo/validation 패키지 개발
+
+**실제 파일 구조:**
+
+```
+packages/validation/src/
+├── auth/
+│   └── index.ts              # 인증 관련 스키마
+├── user/
+│   ├── schemas.ts            # User 스키마 구현
+│   └── index.ts              # export * from "./schemas"
+├── product/
+│   ├── schemas.ts            # Product 스키마 구현
+│   └── index.ts              # export * from "./schemas"
+├── common/
+│   ├── schemas.ts            # 공통 스키마
+│   └── index.ts              # export * from "./schemas"
+└── index.ts                  # 모든 스키마 export
+```
+
+**실제 스키마 구현 패턴:**
+
+```typescript
+// packages/validation/src/user/schemas.ts
+import { z } from "zod";
+
+// 현재 구현된 User 스키마들
+export const UserSchema = z.object({
+  id: z.string().min(1, "사용자 ID는 필수입니다"),
+  email: z.string().email("올바른 이메일 형식이 아닙니다"),
+  name: z
+    .string()
+    .min(1, "이름은 필수입니다")
+    .max(50, "이름은 50자 이하여야 합니다"),
+  avatar: z.string().url("올바른 URL 형식이 아닙니다").optional(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const CreateUserSchema = UserSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  password: z.string().min(8, "비밀번호는 8자 이상이어야 합니다"),
+});
+
+export const UpdateUserSchema = CreateUserSchema.partial().omit({
+  password: true,
+});
+
+export const LoginSchema = z.object({
+  email: z.string().email("올바른 이메일 형식이 아닙니다"),
+  password: z.string().min(1, "비밀번호는 필수입니다"),
+});
+
+// 타입 export
+export type User = z.infer<typeof UserSchema>;
+export type CreateUser = z.infer<typeof CreateUserSchema>;
+export type UpdateUser = z.infer<typeof UpdateUserSchema>;
+export type Login = z.infer<typeof LoginSchema>;
+```
+
+**Product 스키마 구현:**
+
+```typescript
+// packages/validation/src/product/schemas.ts
+import { z } from "zod";
+
+// Category enum 정의
+export const CategoryEnum = z.enum([
+  "ELECTRONICS",
+  "CLOTHING",
+  "BOOKS",
+  "FOOD",
+  "OTHER",
+]);
+
+export const ProductSchema = z.object({
+  name: z
+    .string()
+    .min(1, "상품명은 필수입니다")
+    .max(100, "상품명은 100자 이하여야 합니다"),
+  description: z.string().max(500, "설명은 500자 이하여야 합니다").optional(),
+  price: z
+    .number()
+    .min(0, "가격은 0 이상이어야 합니다")
+    .max(999999.99, "가격은 999,999.99 이하여야 합니다"),
+  category: CategoryEnum.default("OTHER"),
+  inStock: z.boolean().default(true),
+});
+
+export const CreateProductSchema = ProductSchema.extend({
+  userId: z.string().optional(), // 서버에서 자동 설정
+});
+
+export const ProductListSchema = z.object({
+  page: z.number().min(1).default(1),
+  limit: z.number().min(1).max(100).default(10),
+  inStock: z.boolean().optional(),
+  category: CategoryEnum.optional(),
+  search: z.string().optional(),
+  minPrice: z.number().min(0).optional(),
+  maxPrice: z.number().min(0).optional(),
+});
+
+// 타입 정의
+export type Product = z.infer<typeof ProductSchema>;
+export type CreateProduct = z.infer<typeof CreateProductSchema>;
+export type ProductList = z.infer<typeof ProductListSchema>;
+export type Category = z.infer<typeof CategoryEnum>;
+```
+
+**공통 스키마 패턴:**
+
+```typescript
+// packages/validation/src/common/schemas.ts
+import { z } from "zod";
+
+// 현재 구현된 공통 스키마들
+export const IdSchema = z.object({
+  id: z.string().min(1, "ID는 필수입니다"),
+});
+
+export const PaginationSchema = z.object({
+  page: z.number().min(1).default(1),
+  limit: z.number().min(1).max(100).default(10),
+});
+
+export const SearchSchema = z.object({
+  search: z.string().optional(),
+});
+
+export const DateRangeSchema = z.object({
+  from: z.date().optional(),
+  to: z.date().optional(),
+});
+
+// 공통 타입들
+export type Id = z.infer<typeof IdSchema>;
+export type Pagination = z.infer<typeof PaginationSchema>;
+export type Search = z.infer<typeof SearchSchema>;
+export type DateRange = z.infer<typeof DateRangeSchema>;
+```
+
+### @repo/db 패키지 개발
+
+**현재 구조 유지:**
+
+```
+packages/db/src/
+├── client/
+│   ├── client.ts         # Prisma 클라이언트 싱글톤 (수정 금지)
+│   └── index.ts          # export만 담당
+├── models/
+│   └── index.ts          # 향후 모델 유틸리티 확장용
+├── migrations/
+│   └── index.ts          # 향후 마이그레이션 유틸리티 확장용
+└── index.ts              # 모든 모듈 re-export
+```
+
+**Prisma 클라이언트 import 방법:**
+
+```typescript
+// ✅ 올바른 import 방법
+import { prisma } from "@repo/db";
+
+// ❌ 잘못된 import 방법
+import { db } from "@repo/db";
+```
+
+**모델 유틸리티 추가 시 패턴:**
+
+```typescript
+// packages/db/src/models/user.ts (향후 추가 시)
+import { prisma } from "../client";
+import type { Prisma } from "@prisma/client";
+
+// 사용자 조회 헬퍼
+export async function findUserById(id: string) {
+  return prisma.user.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      image: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+}
+
+// 사용자와 제품 함께 조회
+export async function findUserWithProducts(id: string) {
+  return prisma.user.findUnique({
+    where: { id },
+    include: {
+      products: {
+        where: { inStock: true },
+        orderBy: { createdAt: "desc" },
+        take: 10,
+      },
+    },
+  });
+}
+
+// 페이지네이션된 사용자 목록
+export async function findUsersWithPagination(
+  page: number = 1,
+  limit: number = 10,
+  search?: string
+) {
+  const where: Prisma.UserWhereInput = search
+    ? {
+        OR: [
+          { name: { contains: search, mode: "insensitive" } },
+          { email: { contains: search, mode: "insensitive" } },
+        ],
+      }
+    : {};
+
+  const [users, total] = await Promise.all([
+    prisma.user.findMany({
+      where,
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        image: true,
+        createdAt: true,
+        _count: { products: true },
+      },
+    }),
+    prisma.user.count({ where }),
+  ]);
+
+  return {
+    users,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+}
+```
+
+### @repo/ui 패키지 개발
+
+**실제 파일 구조:**
+
+```
+packages/ui/src/
+├── components/
+│   └── ui/                   # shadcn/ui 컴포넌트들
+│       ├── badge.tsx
+│       ├── button.tsx
+│       ├── calendar.tsx
+│       ├── card.tsx
+│       ├── checkbox.tsx
+│       ├── form.tsx
+│       ├── input.tsx
+│       ├── label.tsx
+│       ├── popover.tsx
+│       ├── progress.tsx
+│       ├── select.tsx
+│       ├── separator.tsx
+│       └── textarea.tsx
+├── lib/
+│   └── utils.ts              # cn 함수 구현
+└── index.ts                  # 모든 컴포넌트 export
+```
+
+**cn 함수 사용법:**
+
+```typescript
+// packages/ui/src/components/ui/button.tsx
+import { forwardRef } from "react";
+import { Slot } from "@radix-ui/react-slot";
+import { type VariantProps, cva } from "class-variance-authority";
+import { cn } from "../../lib/utils"; // ✅ 올바른 import 경로
+
+const buttonVariants = cva(
+  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground shadow hover:bg-primary/90",
+        destructive: "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
+        outline: "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
+        secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
+        ghost: "hover:bg-accent hover:text-accent-foreground",
+        link: "text-primary underline-offset-4 hover:underline",
+      },
+      size: {
+        default: "h-9 px-4 py-2",
+        sm: "h-8 rounded-md px-3 text-xs",
+        lg: "h-10 rounded-md px-8",
+        icon: "h-9 w-9",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  }
+);
+
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
+  asChild?: boolean;
+  loading?: boolean;
+}
+
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant, size, asChild = false, loading, disabled, children, ...props }, ref) => {
+    const Comp = asChild ? Slot : "button";
+
+    return (
+      <Comp
+        className={cn(buttonVariants({ variant, size, className }))}
+        ref={ref}
+        disabled={disabled || loading}
+        {...props}
+      >
+        {loading ? (
+          <>
+            <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            Loading...
+          </>
+        ) : (
+          children
+        )}
+      </Comp>
+    );
+  }
+);
+
+Button.displayName = "Button";
+```
+
+**컴포넌트 export 패턴:**
+
+```typescript
+// packages/ui/src/index.ts
+// 현재 구현된 컴포넌트들
+export * from "./components/ui/badge";
+export * from "./components/ui/button";
+export * from "./components/ui/calendar";
+export * from "./components/ui/card";
+export * from "./components/ui/checkbox";
+export * from "./components/ui/form";
+export * from "./components/ui/input";
+export * from "./components/ui/label";
+export * from "./components/ui/popover";
+export * from "./components/ui/progress";
+export * from "./components/ui/select";
+export * from "./components/ui/separator";
+export * from "./components/ui/textarea";
+
+// Utilities
+export * from "./lib/utils";
+```
+
+### @repo/utils 패키지 개발
+
+**실제 파일 구조:**
+
+```
+packages/utils/src/
+├── array/
+│   ├── utils.ts              # 배열 관련 유틸리티
+│   └── index.ts              # export * from "./utils"
+├── cookie/
+│   ├── utils.ts              # 쿠키 관련 유틸리티
+│   └── index.ts              # export * from "./utils"
+├── date/
+│   ├── utils.ts              # 날짜 관련 유틸리티
+│   └── index.ts              # export * from "./utils"
+├── id/
+│   ├── utils.ts              # ID 생성 유틸리티
+│   └── index.ts              # export * from "./utils"
+├── object/
+│   ├── utils.ts              # 객체 관련 유틸리티
+│   └── index.ts              # export * from "./utils"
+├── performance/
+│   ├── utils.ts              # 성능 관련 유틸리티
+│   └── index.ts              # export * from "./utils"
+├── string/
+│   ├── utils.ts              # 문자열 관련 유틸리티
+│   └── index.ts              # export * from "./utils"
+├── lib/                      # 내부 라이브러리
+├── env.ts                    # 환경 변수 유틸리티
+└── index.ts                  # 모든 유틸리티 export
+```
+
+**표준 라이브러리 사용 규칙:**
+
+```typescript
+/**
+ * @fileoverview
+ * 이 패키지는 프로젝트 전반에서 사용되는 유틸리티 함수들을 모아놓은 곳입니다.
+ *
+ * ## 라이브러리 사용 규칙
+ *
+ * 기능이 중복되는 라이브러리의 무분별한 추가를 방지하기 위해,
+ * 각 기능별로 아래의 표준 라이브러리 사용을 권장합니다.
+ *
+ * - **날짜/시간:** `date-fns`
+ * - **정밀한 숫자 계산:** `decimal.js`
+ * - **범용 유틸리티:** `lodash-es`
+ * - **암호화:** `crypto-js`
+ * - **검증:** `validator`
+ * - **ID 생성:** `nanoid`, `uuid`
+ *
+ * 새로운 유틸리티 함수를 추가할 때는, 위 라이브러리를 최대한 활용해주세요.
+ */
+```
+
+**유틸리티 함수 작성 패턴:**
+
+```typescript
+// packages/utils/src/string/utils.ts
+/**
+ * 문자열을 URL 친화적인 슬러그로 변환
+ * @param text 변환할 문자열
+ * @returns 슬러그 문자열
+ */
+export function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "") // 특수문자 제거
+    .replace(/[\s_-]+/g, "-") // 공백을 하이픈으로
+    .replace(/^-+|-+$/g, ""); // 앞뒤 하이픈 제거
+}
+
+/**
+ * 문자열을 지정된 길이로 자르고 말줄임표 추가
+ * @param text 자를 문자열
+ * @param length 최대 길이
+ * @returns 잘린 문자열
+ */
+export function truncate(text: string, length: number): string {
+  if (text.length <= length) return text;
+  return text.slice(0, length).trim() + "...";
+}
+
+/**
+ * 첫 글자를 대문자로 변환
+ * @param text 변환할 문자열
+ * @returns 첫 글자가 대문자인 문자열
+ */
+export function capitalize(text: string): string {
+  if (!text) return text;
+  return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+}
+```
+
+## 패키지 간 import 규칙
+
+### ✅ 올바른 import 패턴
+
+```typescript
+// 특정 함수만 import (Tree-shaking 최적화)
+import { Button } from "@repo/ui";
+import { slugify, formatDate } from "@repo/utils";
+import { UserSchema, CreateUserSchema } from "@repo/validation";
+import { prisma } from "@repo/db"; // ✅ 올바른 Prisma import
+
+// 타입만 import
+import type { User, CreateUser } from "@repo/validation";
+import type { ButtonProps } from "@repo/ui";
+
+// cn 함수 사용 (UI 패키지 내부에서)
+import { cn } from "../../lib/utils"; // UI 패키지 내부
+import { cn } from "@repo/ui/lib/utils"; // 외부 패키지에서
+```
+
+### ❌ 피해야 할 import 패턴
+
+```typescript
+// 전체 패키지 import (번들 크기 증가)
+import * as UI from "@repo/ui";
+import * as Utils from "@repo/utils";
+
+// 내부 경로 직접 접근 (캡슐화 위반)
+import { Button } from "@repo/ui/src/components/ui/button";
+import { prisma } from "@repo/db/src/client/client";
+
+// 잘못된 Prisma import
+import { db } from "@repo/db"; // ❌ 존재하지 않음
+```
+
+## 테스트 작성 패턴
+
+### 유틸리티 함수 테스트
+
+```typescript
+// packages/utils/src/string/__tests__/utils.test.ts
+import { slugify, truncate, capitalize } from "../utils";
+
+describe("String utilities", () => {
+  describe("slugify", () => {
+    it("should convert string to slug", () => {
+      expect(slugify("Hello World!")).toBe("hello-world");
+      expect(slugify("한글 테스트")).toBe("한글-테스트");
+      expect(slugify("  Multiple   Spaces  ")).toBe("multiple-spaces");
+    });
+
+    it("should handle empty string", () => {
+      expect(slugify("")).toBe("");
+    });
+  });
+
+  describe("truncate", () => {
+    it("should truncate long text", () => {
+      const longText = "This is a very long text that should be truncated";
+      expect(truncate(longText, 20)).toBe("This is a very long...");
+    });
+
+    it("should not truncate short text", () => {
+      const shortText = "Short text";
+      expect(truncate(shortText, 20)).toBe("Short text");
+    });
+  });
+});
+```
+
+### 컴포넌트 테스트
+
+```typescript
+// packages/ui/src/components/ui/__tests__/button.test.tsx
+import { render, screen, fireEvent } from "@testing-library/react";
+import { Button } from "../button";
+
+describe("Button", () => {
+  it("renders correctly", () => {
+    render(<Button>Click me</Button>);
+    expect(screen.getByRole("button")).toBeInTheDocument();
+    expect(screen.getByText("Click me")).toBeInTheDocument();
+  });
+
+  it("handles click events", () => {
+    const handleClick = jest.fn();
+    render(<Button onClick={handleClick}>Click me</Button>);
+
+    fireEvent.click(screen.getByRole("button"));
+    expect(handleClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows loading state", () => {
+    render(<Button loading>Click me</Button>);
+    expect(screen.getByText("Loading...")).toBeInTheDocument();
+    expect(screen.getByRole("button")).toBeDisabled();
+  });
+
+  it("applies variant styles", () => {
+    render(<Button variant="destructive">Delete</Button>);
+    const button = screen.getByRole("button");
+    expect(button).toHaveClass("bg-destructive");
+  });
+});
+```
+
+### Validation 스키마 테스트
+
+```typescript
+// packages/validation/src/user/__tests__/schemas.test.ts
+import { UserSchema, CreateUserSchema, LoginSchema } from "../schemas";
+
+describe("User schemas", () => {
+  describe("UserSchema", () => {
+    it("should validate valid user data", () => {
+      const validUser = {
+        id: "user123",
+        email: "test@example.com",
+        name: "Test User",
+        avatar: "https://example.com/avatar.jpg",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      expect(() => UserSchema.parse(validUser)).not.toThrow();
+    });
+
+    it("should reject invalid email", () => {
+      const invalidUser = {
+        id: "user123",
+        email: "invalid-email",
+        name: "Test User",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      expect(() => UserSchema.parse(invalidUser)).toThrow();
+    });
+  });
+
+  describe("CreateUserSchema", () => {
+    it("should require password", () => {
+      const userData = {
+        email: "test@example.com",
+        name: "Test User",
+      };
+
+      expect(() => CreateUserSchema.parse(userData)).toThrow();
+    });
+
+    it("should validate with password", () => {
+      const userData = {
+        email: "test@example.com",
+        name: "Test User",
+        password: "password123",
+      };
+
+      expect(() => CreateUserSchema.parse(userData)).not.toThrow();
+    });
+  });
+});
+```
+
+## 패키지 버전 관리
+
+### package.json 표준 구조
+
+```json
+{
+  "name": "@repo/package-name",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "패키지 설명",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "import": "./index.ts",
+      "default": "./index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc --build",
+    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    // 런타임 의존성
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/tsconfig": "workspace:*",
+    "eslint": "^9.17.0",
+    "typescript": "^5.8.3"
+  }
+}
+```
+
+### 의존성 추가 규칙
+
+```bash
+# 패키지별 의존성 추가
+cd packages/ui
+pnpm add react-hook-form
+
+# 루트에서 특정 패키지에 의존성 추가
+pnpm --filter @repo/ui add react-hook-form
+
+# 개발 의존성은 가능한 루트에서 관리
+pnpm add -D @types/node
+```
+
+## 성능 최적화 체크리스트
+
+### 번들 크기 최적화
+
+- [ ] Tree-shaking 고려한 export 구조
+- [ ] 불필요한 의존성 제거
+- [ ] Dynamic import 활용 (큰 라이브러리)
+- [ ] 타입만 필요한 경우 `import type` 사용
+
+### 빌드 성능 최적화
+
+- [ ] Turbo 캐시 활용
+- [ ] 적절한 태스크 의존성 설정
+- [ ] 불필요한 빌드 단계 제거
+- [ ] 병렬 실행 최대화
+
+### 런타임 성능 최적화
+
+- [ ] 메모이제이션 적절히 활용
+- [ ] 불필요한 리렌더링 방지
+- [ ] 지연 로딩 구현
+- [ ] 이미지 최적화
+
+## 실제 사용 예시
+
+### API에서 validation 사용
+
+```typescript
+// apps/web/src/app/api/users/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { CreateUserSchema, UserSchema } from "@repo/validation";
+import { prisma } from "@repo/db";
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const validatedData = CreateUserSchema.parse(body);
+
+    const user = await prisma.user.create({
+      data: {
+        email: validatedData.email,
+        name: validatedData.name,
+        // password는 해시화 후 저장
+      },
+    });
+
+    return NextResponse.json(UserSchema.parse(user), { status: 201 });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Validation failed", details: error.errors },
+        { status: 400 }
+      );
+    }
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+```
+
+### 컴포넌트에서 utils 사용
+
+```typescript
+// apps/web/src/components/product-card.tsx
+import { Card, CardContent, CardHeader } from "@repo/ui";
+import { truncate, formatDate } from "@repo/utils";
+import type { Product } from "@repo/validation";
+
+interface ProductCardProps {
+  product: Product;
+}
+
+export function ProductCard({ product }: ProductCardProps) {
+  return (
+    <Card>
+      <CardHeader>
+        <h3>{product.name}</h3>
+      </CardHeader>
+      <CardContent>
+        <p>{truncate(product.description || "", 100)}</p>
+        <p>가격: {product.price}원</p>
+        <p>등록일: {formatDate(product.createdAt)}</p>
+      </CardContent>
+    </Card>
+  );
+}
+```

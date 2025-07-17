@@ -29,7 +29,7 @@ apps/web/src/app/api/
 ```typescript
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { db } from "@repo/db";
+import { prisma } from "@repo/db";
 
 // 요청 스키마 정의
 const createUserSchema = z.object({
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get("page") ?? "1");
     const limit = parseInt(searchParams.get("limit") ?? "10");
 
-    const users = await db.user.findMany({
+    const users = await prisma.user.findMany({
       skip: (page - 1) * limit,
       take: limit,
     });
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = createUserSchema.parse(body);
 
-    const user = await db.user.create({
+    const user = await prisma.user.create({
       data: validatedData,
     });
 
@@ -267,7 +267,7 @@ export async function withAuth<T extends NextRequest>(
     const payload = verify(token, process.env.JWT_SECRET!) as {
       userId: string;
     };
-    const user = await db.user.findUnique({
+    const user = await prisma.user.findUnique({
       where: { id: payload.userId },
     });
 
@@ -312,12 +312,12 @@ export function withRole(requiredRole: string) {
 ### Prisma 사용 패턴
 
 ```typescript
-import { db } from "@repo/db";
+import { prisma } from "@repo/db";
 import { Prisma } from "@prisma/client";
 
 // 트랜잭션 사용
-export async function createUserWithProfile(userData: CreateUserData) {
-  return db.$transaction(async tx => {
+export async function createUserWithProducts(userData: CreateUserData) {
+  return prisma.$transaction(async tx => {
     const user = await tx.user.create({
       data: {
         name: userData.name,
@@ -325,23 +325,32 @@ export async function createUserWithProfile(userData: CreateUserData) {
       },
     });
 
-    const profile = await tx.profile.create({
-      data: {
-        userId: user.id,
-        bio: userData.bio,
-      },
-    });
+    // 사용자와 함께 초기 제품 생성 (선택사항)
+    if (userData.initialProducts) {
+      await tx.product.createMany({
+        data: userData.initialProducts.map(product => ({
+          ...product,
+          userId: user.id,
+        })),
+      });
+    }
 
-    return { user, profile };
+    return { user };
   });
 }
 
 // 에러 처리
 export async function getUserById(id: string) {
   try {
-    const user = await db.user.findUniqueOrThrow({
+    const user = await prisma.user.findUniqueOrThrow({
       where: { id },
-      include: { profile: true },
+      include: {
+        products: {
+          where: { inStock: true },
+          orderBy: { createdAt: "desc" },
+          take: 10,
+        },
+      },
     });
     return user;
   } catch (error) {
@@ -420,7 +429,7 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  const users = await db.user.findMany();
+  const users = await prisma.user.findMany();
 
   // 캐시 저장
   await setCache(cacheKey, users, 300);
@@ -437,19 +446,21 @@ export async function GET(request: NextRequest) {
 
 ```typescript
 // 필요한 필드만 선택
-const users = await db.user.findMany({
+const users = await prisma.user.findMany({
   select: {
     id: true,
     name: true,
     email: true,
-    // password 제외
+    image: true,
+    // password나 민감한 정보 제외
   },
 });
 
-// 관계 데이터 효율적 로딩
-const usersWithPosts = await db.user.findMany({
+// 관계 데이터 효율적 로딩 (현재 스키마에 맞게)
+const usersWithProducts = await prisma.user.findMany({
   include: {
-    posts: {
+    products: {
+      where: { inStock: true },
       take: 5, // 최근 5개만
       orderBy: { createdAt: "desc" },
     },
