@@ -1,0 +1,486 @@
+---
+alwaysApply: true
+---
+# 모노레포 구조 및 개발 가이드
+
+## 프로젝트 전체 구조
+
+### 루트 레벨 구조
+
+```
+project/
+├── apps/
+│   └── web/                    # Next.js 15.3.5 메인 웹 애플리케이션
+├── packages/
+│   ├── db/                     # @repo/db - Prisma + PostgreSQL
+│   ├── ui/                     # @repo/ui - Radix UI 컴포넌트 시스템
+│   ├── utils/                  # @repo/utils - 공통 유틸리티
+│   ├── validation/             # @repo/validation - Zod 스키마
+│   ├── eslint-config/          # @repo/eslint-config - ESLint 설정
+│   └── tsconfig/              # @repo/tsconfig - TypeScript 설정
+├── scripts/                    # 셸 스크립트 (setup.sh, health-check.sh)
+├── .kiro/                     # Kiro AI 설정 및 steering
+├── docker-compose.yml         # PostgreSQL 개발 환경
+└── turbo.json                 # Turborepo 설정
+```
+
+### 패키지 의존성 관계
+
+```
+apps/web
+├── @repo/db (Prisma 클라이언트)
+├── @repo/ui (컴포넌트)
+├── @repo/utils (유틸리티)
+└── @repo/validation (스키마)
+
+@repo/ui
+├── @repo/validation (폼 검증)
+└── @repo/utils (유틸리티)
+
+@repo/db
+└── @repo/validation (데이터 검증)
+
+@repo/utils
+└── @repo/validation (타입 정의)
+
+@repo/validation (독립적, 다른 패키지에 의존하지 않음)
+```
+
+## 현재 데이터베이스 스키마
+
+### User 모델
+
+```prisma
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  name      String?
+  image     String?
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  @@map("users")
+}
+```
+
+### Product 모델
+
+```prisma
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  price       Decimal  @db.Decimal(10, 2)
+  category    String?
+  inStock     Boolean  @default(true)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@map("products")
+}
+```
+
+## 패키지별 세부 구조
+
+### @repo/db 패키지
+
+```
+packages/db/
+├── prisma/
+│   └── schema.prisma           # 데이터베이스 스키마
+├── src/
+│   ├── client/
+│   │   ├── client.ts          # Prisma 클라이언트 싱글톤
+│   │   └── index.ts           # export * from "./client"
+│   ├── models/
+│   │   └── index.ts           # 향후 모델 유틸리티 (현재 빈 파일)
+│   ├── migrations/
+│   │   └── index.ts           # 향후 마이그레이션 유틸리티 (현재 빈 파일)
+│   └── index.ts               # 모든 모듈 re-export
+├── .env                       # 데이터베이스 연결 정보
+├── .env.example
+└── index.ts                   # export * from "./src/index"
+```
+
+**현재 Prisma 클라이언트 구현:**
+
+```typescript
+// packages/db/src/client/client.ts
+import { PrismaClient } from "@prisma/client";
+
+const prismaClientSingleton = () => {
+  return new PrismaClient();
+};
+
+declare global {
+  var prisma: undefined | ReturnType<typeof prismaClientSingleton>;
+}
+
+export const prisma = globalThis.prisma ?? prismaClientSingleton();
+
+if (process.env.NODE_ENV !== "production") {
+  globalThis.prisma = prisma;
+}
+```
+
+### @repo/ui 패키지
+
+```
+packages/ui/
+├── src/
+│   ├── components/            # Radix UI 기반 컴포넌트들
+│   ├── hooks/                # 커스텀 React 훅
+│   ├── lib/                  # UI 관련 유틸리티
+│   └── index.ts              # 모든 컴포넌트 export
+├── components.json           # shadcn/ui 설정
+└── index.ts                  # export * from "./src/index"
+```
+
+**주요 의존성:**
+
+- Radix UI 컴포넌트들 (@radix-ui/react-\*)
+- class-variance-authority (CVA)
+- Tailwind CSS 관련 (tailwind-merge, tailwindcss-animate)
+- React Hook Form + Zod 통합
+- Framer Motion (애니메이션)
+- Lucide React (아이콘)
+
+### @repo/utils 패키지
+
+```
+packages/utils/
+├── src/
+│   ├── array/
+│   │   ├── utils.ts          # 배열 관련 유틸리티
+│   │   └── index.ts          # export * from "./utils"
+│   ├── cookie/
+│   │   ├── utils.ts          # 쿠키 관련 유틸리티
+│   │   └── index.ts          # export * from "./utils"
+│   ├── date/
+│   │   ├── utils.ts          # 날짜 관련 유틸리티
+│   │   └── index.ts          # export * from "./utils"
+│   ├── id/
+│   │   ├── utils.ts          # ID 생성 유틸리티
+│   │   └── index.ts          # export * from "./utils"
+│   ├── object/
+│   │   ├── utils.ts          # 객체 관련 유틸리티
+│   │   └── index.ts          # export * from "./utils"
+│   ├── performance/
+│   │   ├── utils.ts          # 성능 관련 유틸리티
+│   │   └── index.ts          # export * from "./utils"
+│   ├── string/
+│   │   ├── utils.ts          # 문자열 관련 유틸리티
+│   │   └── index.ts          # export * from "./utils"
+│   ├── lib/                  # 내부 라이브러리
+│   ├── env.ts                # 환경 변수 유틸리티
+│   └── index.ts              # 모든 유틸리티 export
+└── index.ts                  # export * from "./src/index"
+```
+
+**표준 라이브러리 사용 규칙:**
+
+- **날짜/시간**: `date-fns`
+- **정밀한 숫자 계산**: `decimal.js`
+- **범용 유틸리티**: `lodash-es`
+- **암호화**: `crypto-js`
+- **검증**: `validator`
+- **ID 생성**: `nanoid`, `uuid`
+
+### @repo/validation 패키지
+
+```
+packages/validation/
+├── src/
+│   ├── auth/
+│   │   └── index.ts          # 인증 관련 스키마
+│   ├── user/
+│   │   ├── schemas.ts        # User 스키마 구현
+│   │   └── index.ts          # export * from "./schemas"
+│   ├── product/
+│   │   ├── schemas.ts        # Product 스키마 구현
+│   │   └── index.ts          # export * from "./schemas"
+│   ├── common/
+│   │   ├── schemas.ts        # 공통 스키마 (페이지네이션, ID 등)
+│   │   └── index.ts          # export * from "./schemas"
+│   └── index.ts              # 모든 스키마 export
+└── index.ts                  # export * from "./src/index"
+```
+
+**현재 구현된 스키마들:**
+
+- **User**: UserSchema, CreateUserSchema, UpdateUserSchema, LoginSchema
+- **Product**: ProductSchema, CreateProductSchema, UpdateProductSchema, ProductListSchema
+- **Common**: IdSchema, PaginationSchema, SearchSchema, DateRangeSchema
+
+## 개발 워크플로우
+
+### 필수 명령어 (루트에서 실행)
+
+```bash
+# 전체 프로젝트 초기 설정
+pnpm setup
+
+# 개발 서버 시작 (모든 앱)
+pnpm dev
+
+# 데이터베이스 관련
+pnpm db:generate              # Prisma 클라이언트 생성
+pnpm db:push                  # 스키마를 개발 DB에 적용
+pnpm db:studio                # Prisma Studio 실행
+pnpm db:migrate               # 마이그레이션 실행 (프로덕션용)
+
+# 코드 품질 관리
+pnpm check-all                # 린트 + 타입체크 + 포맷 검사
+pnpm fix-all                  # 자동 수정 적용
+pnpm precommit                # 커밋 전 검사 (check-all과 동일)
+
+# 빌드 및 테스트
+pnpm build                    # 모든 패키지 빌드
+pnpm test                     # 모든 테스트 실행
+pnpm test:watch               # 테스트 감시 모드
+
+# 패키지 관리
+pnpm reset                    # 전체 초기화 (node_modules 삭제 후 재설치)
+pnpm update-deps              # 모든 의존성 업데이트
+
+# Docker 관련
+pnpm docker:dev               # PostgreSQL 개발 서버 시작
+pnpm docker:down              # Docker 서비스 중지
+```
+
+### 패키지별 명령어
+
+```bash
+# 특정 패키지에서만 명령어 실행
+pnpm --filter @repo/db db:generate
+pnpm --filter @repo/ui build
+pnpm --filter web dev
+
+# 여러 패키지 동시 실행
+pnpm --filter "@repo/*" build
+```
+
+### Turbo 태스크 의존성 체인
+
+```
+dev: db:generate → dev (persistent)
+build: db:generate → ^build → build
+lint: ^build → lint
+test: ^build → test
+type-check: ^build → type-check
+```
+
+## 새로운 기능 개발 시 패턴
+
+### 1. 새로운 데이터 모델 추가
+
+```bash
+# 1. Prisma 스키마 수정
+vim packages/db/prisma/schema.prisma
+
+# 2. 클라이언트 재생성
+pnpm db:generate
+
+# 3. 개발 DB에 적용
+pnpm db:push
+
+# 4. 검증 스키마 추가
+vim packages/validation/src/new-model.ts
+
+# 5. API 엔드포인트 생성
+vim apps/web/src/app/api/new-model/route.ts
+```
+
+### 2. 새로운 UI 컴포넌트 추가
+
+```bash
+# 1. 컴포넌트 생성
+vim packages/ui/src/components/new-component.tsx
+
+# 2. export 추가
+vim packages/ui/src/index.ts
+
+# 3. 웹 앱에서 사용
+vim apps/web/src/app/page.tsx
+```
+
+### 3. 새로운 유틸리티 함수 추가
+
+```bash
+# 1. 유틸리티 함수 생성
+vim packages/utils/src/new-util.ts
+
+# 2. export 추가
+vim packages/utils/src/index.ts
+
+# 3. 테스트 작성
+vim packages/utils/src/__tests__/new-util.test.ts
+```
+
+## 환경 변수 관리
+
+### 데이터베이스 연결 (packages/db/.env)
+
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/dbname"
+```
+
+### Next.js 앱 환경변수 (apps/web/.env.local)
+
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/dbname"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+```
+
+## 타입 안전성 보장
+
+### Prisma 타입 활용
+
+```typescript
+import type { User, Product, Prisma } from "@prisma/client";
+
+// 관계 포함 타입
+type UserWithProducts = Prisma.UserGetPayload<{
+  include: { products: true };
+}>;
+
+// 선택적 필드 타입
+type UserSummary = Prisma.UserGetPayload<{
+  select: { id: true; email: true; name: true };
+}>;
+```
+
+### 패키지 간 타입 공유
+
+```typescript
+// packages/validation/src/user/schemas.ts
+export const CreateUserSchema = z.object({
+  email: z.string().email("올바른 이메일 형식이 아닙니다"),
+  name: z
+    .string()
+    .min(1, "이름은 필수입니다")
+    .max(50, "이름은 50자 이하여야 합니다"),
+  password: z.string().min(8, "비밀번호는 8자 이상이어야 합니다"),
+});
+
+export type CreateUser = z.infer<typeof CreateUserSchema>;
+
+// apps/web/src/app/api/users/route.ts
+import { CreateUserSchema, type CreateUser } from "@repo/validation";
+import { prisma } from "@repo/db";
+```
+
+## 성능 최적화 가이드
+
+### Turborepo 캐시 활용
+
+- 빌드 결과물 캐시 (.turbo/ 디렉토리)
+- 태스크 의존성 최적화
+- 병렬 실행 최대화
+
+### 번들 크기 최적화
+
+```typescript
+// Tree-shaking 고려한 import
+import { Button } from "@repo/ui"; // ✅ 좋음
+import { Button } from "@repo/ui/components/button"; // ✅ 더 좋음
+
+// 전체 패키지 import 지양
+import * as UI from "@repo/ui"; // ❌ 피하기
+```
+
+### 데이터베이스 쿼리 최적화
+
+```typescript
+// 필요한 필드만 선택
+const users = await prisma.user.findMany({
+  select: {
+    id: true,
+    email: true,
+    name: true,
+    // password 제외
+  },
+});
+
+// 관계 데이터 효율적 로딩
+const usersWithProducts = await prisma.user.findMany({
+  include: {
+    products: {
+      take: 5, // 최근 5개만
+      orderBy: { createdAt: "desc" },
+    },
+  },
+});
+```
+
+## 패키지 의존성 규칙
+
+### ✅ 허용된 의존성
+
+- `apps/web` → 모든 `@repo/*` 패키지
+- `@repo/ui` → `@repo/validation`, `@repo/utils`
+- `@repo/db` → `@repo/validation`
+- `@repo/utils` → `@repo/validation`
+
+### ❌ 금지된 의존성
+
+- 패키지 간 순환 의존성 절대 금지
+- `@repo/validation`은 다른 `@repo/*` 패키지에 의존하면 안됨
+- `@repo/eslint-config`, `@repo/tsconfig`는 독립적이어야 함
+
+## 버전 관리 및 배포
+
+### 패키지 버전 동기화
+
+- 모든 `@repo/*` 패키지는 동일한 버전 (0.0.0)
+- workspace:\* 의존성 사용
+- 개별 패키지 배포 없음 (모노레포 내부 사용)
+
+### 환경별 설정
+
+```bash
+# 개발 환경
+pnpm docker:dev  # PostgreSQL 시작
+pnpm dev         # 개발 서버 시작
+
+# 프로덕션 빌드
+pnpm build       # 모든 패키지 빌드
+pnpm start       # 프로덕션 서버 시작
+```
+
+## 문제 해결 가이드
+
+### 일반적인 문제들
+
+1. **타입 에러**: `pnpm db:generate` 실행
+2. **의존성 충돌**: `pnpm reset` 후 재설치
+3. **빌드 실패**: Turbo 캐시 클리어 후 재빌드
+4. **포트 충돌**: 다른 포트 사용 또는 프로세스 종료
+
+### 디버깅 도구
+
+- Prisma Studio: `pnpm db:studio`
+- Next.js DevTools
+- React DevTools
+- Turbo 로그: `--verbose` 플래그 사용
+
+## 코드 품질 유지
+
+### 자동화된 검사
+
+- ESLint: 코드 스타일 및 품질
+- TypeScript: 타입 안전성
+- Prettier: 코드 포맷팅
+- Jest: 단위 테스트
+
+### 커밋 전 체크리스트
+
+```bash
+pnpm check-all  # 또는 pnpm precommit
+```
+
+- [ ] ESLint 통과
+- [ ] TypeScript 컴파일 성공
+- [ ] Prettier 포맷팅 적용
+- [ ] 테스트 통과 (있는 경우)
